@@ -27,3 +27,19 @@ class OHLCVBar:
             raise ValueError(
                 f"volume ({self.volume}) must be >= 0"
             )
+
+
+@dataclass(frozen=True, slots=True)
+class SentimentScore:
+    """A daily sentiment score for a ticker."""
+
+    ticker: str
+    date: datetime.date
+    score: float  # -1.0 (bearish) to 1.0 (bullish)
+    source: str
+
+    def __post_init__(self) -> None:
+        if not -1.0 <= self.score <= 1.0:
+            raise ValueError(
+                f"score ({self.score}) must be between -1.0 and 1.0"
+            )

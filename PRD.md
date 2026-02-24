@@ -104,11 +104,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want to ingest daily sentiment scores so that predictions include market mood.
 
 **Acceptance Criteria:**
-- [ ] `src/smaps/collectors/sentiment.py` exports `fetch_sentiment(ticker, date) -> SentimentScore`
-- [ ] `SentimentScore` dataclass: ticker, date, score (float -1..1), source (str)
-- [ ] Provider uses a free news API or RSS-based heuristic
-- [ ] Unit test with mocked response verifies parsing
-- [ ] Typecheck passes
+- [x] `src/smaps/collectors/sentiment.py` exports `fetch_sentiment(ticker, date) -> SentimentScore`
+- [x] `SentimentScore` dataclass: ticker, date, score (float -1..1), source (str)
+- [x] Provider uses a free news API or RSS-based heuristic
+- [x] Unit test with mocked response verifies parsing
+- [x] Typecheck passes
 
 ### US-105: Add sentiment table and persistence
 **Description:** As a developer, I want sentiment scores stored so that features can use them.

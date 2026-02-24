@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-104: Implement sentiment data collector
+- US-105: Add sentiment table and persistence
 
 ---
 
@@ -153,4 +153,25 @@
   - INSERT OR REPLACE on composite PK (ticker, date) is the idiomatic SQLite upsert for this pattern
   - Store datetime.date as ISO string via .isoformat() — SQLite has no native date type
   - executemany() is efficient for batch inserts; commit once after the batch
+---
+
+## Iteration 9 — US-104: Implement sentiment data collector
+- What was done:
+  - Added SentimentScore frozen dataclass to src/smaps/models.py with validation (score clamped to -1..1)
+  - Created src/smaps/collectors/sentiment.py with fetch_sentiment(ticker, date) -> SentimentScore
+  - Uses Google News RSS feed as free data source (no API key needed)
+  - Keyword-based headline sentiment heuristic: positive/negative word sets, averaged across headlines
+  - _score_headline() scores individual headlines; _fetch_rss() fetches RSS XML
+  - Created tests/test_collectors_sentiment.py with 10 tests:
+    - TestScoreHeadline: positive, negative, neutral, mixed headlines, score range
+    - TestFetchSentiment: returns SentimentScore, positive/negative/empty feed, valid range
+  - All tests use mocked urlopen (no live HTTP calls)
+  - Verified: make test (36 passed), make typecheck (success)
+- Files affected: src/smaps/models.py, src/smaps/collectors/sentiment.py (new), tests/test_collectors_sentiment.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - Google News RSS is a free, no-auth-needed source for stock headlines: news.google.com/rss/search?q=TICKER+stock
+  - urlopen returns a context manager; mock both __enter__/__exit__ and .read() for testing
+  - Keyword-based sentiment is a reasonable baseline; can be upgraded to NLP later
+  - SentimentScore.source field enables multiple providers in future (e.g., Reddit, Twitter)
+  - xml.etree.ElementTree.fromstring() + .iter("title") is the simplest way to extract RSS titles
 ---
