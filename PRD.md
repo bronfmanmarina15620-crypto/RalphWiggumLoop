@@ -10,35 +10,40 @@ degradation. No execution, no intraday signals.
 
 ## Phase 0 — Repo / Infra Skeleton
 
-- [ ] **US-0001**: Create PRD.md + progress.txt (scaffold)
-  - [ ] `PRD.md` exists at repo root with all phases and user stories listed
-  - [ ] `progress.txt` exists at repo root with sections: Learnings, Decisions, Integration Notes, Next Smallest Task
-  - [ ] Both files are committed and trackable by RALPH
+- [x] **US-0001**: Create PRD.md + progress.txt (scaffold)
+  - [x] `PRD.md` exists at repo root with all phases and user stories listed
+  - [x] `progress.txt` exists at repo root with sections: Learnings, Decisions, Integration Notes, Next Smallest Task
+  - [x] Both files are committed and trackable by RALPH
+  - Verified by: `bash scripts/verify_scaffold.sh`
 
-- [ ] **US-0002**: Add Python project skeleton (src/, tests/, pyproject.toml)
-  - [ ] `pyproject.toml` exists with project name `smaps`, Python >=3.11
-  - [ ] `src/smaps/__init__.py` exists and exposes `__version__`
-  - [ ] `tests/` directory exists with at least one test file
-  - [ ] `pip install -e .` succeeds without errors
-  - [ ] `python -c "import smaps; print(smaps.__version__)"` prints a version string
+- [x] **US-0002**: Add Python project skeleton (src/, tests/, pyproject.toml)
+  - [x] `pyproject.toml` exists with project name `smaps`, Python >=3.11
+  - [x] `src/smaps/__init__.py` exists and exposes `__version__`
+  - [x] `tests/` directory exists with at least one test file
+  - [x] `pip install -e .` succeeds without errors
+  - [x] `python -c "import smaps; print(smaps.__version__)"` prints a version string
+  - Verified by: `bash scripts/verify_scaffold.sh`
 
-- [ ] **US-0003**: Add `make test` / `pytest -q` + one smoke test
-  - [ ] `Makefile` exists with `test` and `smoke` targets
-  - [ ] `make test` runs `python -m pytest -q` and exits 0
-  - [ ] `tests/test_smoke.py` contains at least 2 passing tests (import + DB schema)
-  - [ ] `make smoke` runs `python -c "import smaps; print('ok')"` and exits 0
+- [x] **US-0003**: Add `make test` / `pytest -q` + one smoke test
+  - [x] `Makefile` exists with `test` and `smoke` targets
+  - [x] `make test` runs `python -m pytest -q` and exits 0
+  - [x] `tests/test_smoke.py` contains at least 2 passing tests (import + DB schema)
+  - [x] `make smoke` runs `python -c "import smaps; print('ok')"` and exits 0
+  - Verified by: `bash scripts/verify_scaffold.sh`
 
-- [ ] **US-0004**: Add `.env.example` + config loader
-  - [ ] `.env.example` exists with placeholder keys: `SMAPS_TICKERS`, `SMAPS_DB_PATH`, `SMAPS_LOG_LEVEL`
-  - [ ] `src/smaps/config.py` defines a `Settings` class with typed fields and defaults
-  - [ ] `Settings()` instantiation succeeds with no env vars set (all defaults work)
-  - [ ] Environment variable overrides are respected (e.g., `SMAPS_LOG_LEVEL=DEBUG`)
+- [x] **US-0004**: Add `.env.example` + config loader
+  - [x] `.env.example` exists with placeholder keys: `SMAPS_TICKERS`, `SMAPS_DB_PATH`, `SMAPS_LOG_LEVEL`
+  - [x] `src/smaps/config.py` defines a `Settings` class with typed fields and defaults
+  - [x] `Settings()` instantiation succeeds with no env vars set (all defaults work)
+  - [x] Environment variable overrides are respected (e.g., `SMAPS_LOG_LEVEL=DEBUG`)
+  - Verified by: `bash scripts/verify_scaffold.sh`
 
-- [ ] **US-0005**: Add logging baseline + structured run_id
-  - [ ] `src/smaps/logging.py` exports `get_logger(name, run_id=None)`
-  - [ ] Logger output includes ISO timestamp, level, name, and run_id when provided
-  - [ ] `get_logger("test")` returns a usable `logging.Logger` instance
-  - [ ] No external logging dependencies required
+- [x] **US-0005**: Add logging baseline + structured run_id
+  - [x] `src/smaps/logging.py` exports `get_logger(name, run_id=None)`
+  - [x] Logger output includes ISO timestamp, level, name, and run_id when provided
+  - [x] `get_logger("test")` returns a usable `logging.Logger` instance
+  - [x] No external logging dependencies required
+  - Verified by: `bash scripts/verify_scaffold.sh`
 
 - [ ] **US-0006**: Add local SQLite schema migration tool
   - [ ] `src/smaps/db.py` exports `get_connection(db_path)` and `ensure_schema(conn)`

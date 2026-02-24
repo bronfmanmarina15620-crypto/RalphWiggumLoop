@@ -8,13 +8,14 @@
 - Config: pydantic-settings for env var loading with typed defaults
 - Logging: stdlib logging only, no external deps
 - Layout: new code under src/smaps/; legacy src/*.py files left untouched
+- Phase 0 complete (US-0001..US-0005). US-0006 deferred.
 
 ## Integration Notes
 - `pip install -e .` installs the smaps package in editable mode
 - `python -m pytest -q` runs all tests from repo root
 - `python -c "import smaps; print('ok')"` verifies package importability
 - SQLite DB created on-demand at path from SMAPS_DB_PATH (default: data/smaps.sqlite)
+- Single source of truth verification: scripts/verify_scaffold.sh + CI scaffold_verify.yml
 
 ## Next Smallest Task
-- US-0001: Mark complete once PRD.md and progress.txt are committed
-- US-0002: Mark complete once skeleton passes smoke tests
+- US-0006: Choose migrations approach (Alembic vs simple schema versioning) and implement minimal migration scaffold.
