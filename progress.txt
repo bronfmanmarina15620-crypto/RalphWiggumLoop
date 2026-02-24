@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-005: Add SQLite database layer with schema migrations
+- US-101: Define OHLCV data model
 
 ---
 
@@ -69,4 +69,24 @@
   - logging.StreamHandler writes to stderr by default; use capfd to capture it
   - Use unique logger names in tests to avoid handler reuse from Python's global logger registry
   - Phase 0 modules were pre-built but needed AC-level test coverage to be marked complete
+---
+
+## Iteration 5 — US-005: Add SQLite database layer with schema migrations
+- What was done:
+  - db.py already exported get_connection(db_path) and ensure_schema(conn)
+  - migrations.py already had sequential migration list with Callable types
+  - schema_migrations table already created with version tracking
+  - ensure_schema already idempotent (CREATE TABLE IF NOT EXISTS + version check)
+  - Existing tests verified table creation and idempotency
+  - Added test_schema_migrations_tracks_version to explicitly verify:
+    - schema_migrations table exists after ensure_schema
+    - Tracked version matches SCHEMA_VERSION
+    - Only one version row exists (not accumulated from repeated calls)
+  - Verified: make test (12 passed), make typecheck (success)
+- Files affected: tests/test_smoke.py, PRD.md, progress.txt
+- Learnings for next cycles:
+  - db.py uses DELETE + INSERT pattern for set_schema_version (single-row tracking, not append)
+  - get_schema_version returns 0 if schema_migrations table doesn't exist yet
+  - ensure_schema has downgrade protection: raises RuntimeError if DB version > code version
+  - Phase 0 DB layer was fully pre-built; just needed explicit test for version tracking AC
 ---

@@ -63,11 +63,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want a local DB with versioned migrations so that schema evolves safely.
 
 **Acceptance Criteria:**
-- [ ] `src/smaps/db.py` exports `get_connection(db_path)` and `ensure_schema(conn)`
-- [ ] `schema_migrations` table tracks applied version
-- [ ] Migrations are sequential and idempotent
-- [ ] Unit test: fresh DB → ensure_schema → verify tables exist
-- [ ] Typecheck passes
+- [x] `src/smaps/db.py` exports `get_connection(db_path)` and `ensure_schema(conn)`
+- [x] `schema_migrations` table tracks applied version
+- [x] Migrations are sequential and idempotent
+- [x] Unit test: fresh DB → ensure_schema → verify tables exist
+- [x] Typecheck passes
 
 ---
 

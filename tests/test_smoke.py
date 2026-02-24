@@ -87,6 +87,32 @@ def test_ensure_schema():
     conn.close()
 
 
+def test_schema_migrations_tracks_version():
+    """schema_migrations table tracks applied version after ensure_schema."""
+    from smaps.db import SCHEMA_VERSION, ensure_schema, get_connection
+
+    conn = get_connection(":memory:")
+    ensure_schema(conn)
+
+    # Verify schema_migrations table exists
+    cur = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations'"
+    )
+    assert cur.fetchone() is not None
+
+    # Verify tracked version matches SCHEMA_VERSION
+    cur = conn.execute("SELECT version FROM schema_migrations")
+    row = cur.fetchone()
+    assert row is not None
+    assert row[0] == SCHEMA_VERSION
+
+    # Verify only one version row exists (not accumulated)
+    cur = conn.execute("SELECT COUNT(*) FROM schema_migrations")
+    assert cur.fetchone()[0] == 1
+
+    conn.close()
+
+
 def test_ensure_schema_columns():
     """ohlcv_daily has the expected columns and primary key."""
     from smaps.db import ensure_schema, get_connection
