@@ -114,10 +114,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want sentiment scores stored so that features can use them.
 
 **Acceptance Criteria:**
-- [ ] Migration adds `sentiment_daily` table: ticker, date, score, source; PK (ticker, date, source)
-- [ ] Upsert logic avoids duplicates
-- [ ] Unit test verifies round-trip persistence
-- [ ] Typecheck passes
+- [x] Migration adds `sentiment_daily` table: ticker, date, score, source; PK (ticker, date, source)
+- [x] Upsert logic avoids duplicates
+- [x] Unit test verifies round-trip persistence
+- [x] Typecheck passes
 
 ### US-106: Implement fundamentals data collector
 **Description:** As a developer, I want to ingest key fundamental metrics so that predictions include valuation context.

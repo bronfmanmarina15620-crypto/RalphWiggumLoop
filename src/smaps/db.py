@@ -5,9 +5,9 @@ from __future__ import annotations
 import sqlite3
 
 from smaps.migrations import MIGRATIONS
-from smaps.models import OHLCVBar
+from smaps.models import OHLCVBar, SentimentScore
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def get_connection(db_path: str = ":memory:") -> sqlite3.Connection:
@@ -79,3 +79,22 @@ def upsert_bars(conn: sqlite3.Connection, bars: list[OHLCVBar]) -> int:
     )
     conn.commit()
     return len(bars)
+
+
+def upsert_sentiment(conn: sqlite3.Connection, scores: list[SentimentScore]) -> int:
+    """Persist sentiment scores with INSERT OR REPLACE (idempotent upsert).
+
+    Returns the number of rows upserted.
+    """
+    conn.executemany(
+        """\
+        INSERT OR REPLACE INTO sentiment_daily (ticker, date, score, source)
+        VALUES (?, ?, ?, ?)
+        """,
+        [
+            (s.ticker, s.date.isoformat(), s.score, s.source)
+            for s in scores
+        ],
+    )
+    conn.commit()
+    return len(scores)

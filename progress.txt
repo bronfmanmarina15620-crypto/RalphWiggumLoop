@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-105: Add sentiment table and persistence
+- US-106: Implement fundamentals data collector
 
 ---
 
@@ -174,4 +174,25 @@
   - Keyword-based sentiment is a reasonable baseline; can be upgraded to NLP later
   - SentimentScore.source field enables multiple providers in future (e.g., Reddit, Twitter)
   - xml.etree.ElementTree.fromstring() + .iter("title") is the simplest way to extract RSS titles
+---
+
+## Iteration 10 — US-105: Add sentiment table and persistence
+- What was done:
+  - Added migration_002_sentiment to migrations.py creating `sentiment_daily` table with PK (ticker, date, source)
+  - Bumped SCHEMA_VERSION from 1 to 2 in db.py
+  - Added `upsert_sentiment(conn, scores) -> int` function to db.py using INSERT OR REPLACE
+  - Imported SentimentScore into db.py alongside OHLCVBar
+  - Created tests/test_sentiment_persistence.py with 5 tests:
+    - test_upsert_inserts_sentiment: verifies single score round-trip
+    - test_upsert_same_row_twice_yields_single_row: core AC — same PK twice → 1 row, second value wins
+    - test_upsert_multiple_scores: verifies batch insert of 3 scores
+    - test_upsert_different_sources_same_ticker_date: verifies different sources coexist (composite PK)
+    - test_upsert_empty_list: edge case — empty list succeeds
+  - Verified: make test (41 passed), make typecheck (success)
+- Files affected: src/smaps/migrations.py, src/smaps/db.py, tests/test_sentiment_persistence.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - SCHEMA_VERSION bump is safe because existing tests reference it dynamically via import
+  - Composite PK (ticker, date, source) allows multiple sentiment providers for the same ticker+date
+  - INSERT OR REPLACE on composite PK is the same idempotent upsert pattern used for ohlcv_daily
+  - Migration pattern is consistent: add function, add to MIGRATIONS list, bump SCHEMA_VERSION
 ---
