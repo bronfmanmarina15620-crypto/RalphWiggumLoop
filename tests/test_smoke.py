@@ -21,6 +21,20 @@ def test_config_defaults():
     assert "PLTR" in s.tickers
 
 
+def test_config_env_overrides(monkeypatch):
+    """Env vars with SMAPS_ prefix override default settings."""
+    from smaps.config import Settings
+
+    monkeypatch.setenv("SMAPS_DB_PATH", "/tmp/test.db")
+    monkeypatch.setenv("SMAPS_LOG_LEVEL", "DEBUG")
+    monkeypatch.setenv("SMAPS_TICKERS", '["GOOG","TSLA"]')
+
+    s = Settings()
+    assert s.db_path == "/tmp/test.db"
+    assert s.log_level == "DEBUG"
+    assert s.tickers == ["GOOG", "TSLA"]
+
+
 def test_get_logger():
     """get_logger returns a usable logger."""
     from smaps.logging import get_logger

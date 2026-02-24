@@ -44,11 +44,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want a typed config so that all settings are centralized and overridable.
 
 **Acceptance Criteria:**
-- [ ] `.env.example` with keys: `SMAPS_TICKERS`, `SMAPS_DB_PATH`, `SMAPS_LOG_LEVEL`
-- [ ] `src/smaps/config.py` defines `Settings` dataclass with typed fields and defaults
-- [ ] `Settings()` works with no env vars (all defaults)
-- [ ] Env var overrides are respected
-- [ ] Typecheck passes
+- [x] `.env.example` with keys: `SMAPS_TICKERS`, `SMAPS_DB_PATH`, `SMAPS_LOG_LEVEL`
+- [x] `src/smaps/config.py` defines `Settings` dataclass with typed fields and defaults
+- [x] `Settings()` works with no env vars (all defaults)
+- [x] Env var overrides are respected
+- [x] Typecheck passes
 
 ### US-004: Add structured logging with run_id
 **Description:** As a developer, I want structured logs so that each pipeline run is traceable.
