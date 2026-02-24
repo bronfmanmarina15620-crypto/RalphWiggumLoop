@@ -86,10 +86,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want to fetch daily OHLCV bars so that the system has price data.
 
 **Acceptance Criteria:**
-- [ ] `src/smaps/collectors/price.py` exports `fetch_daily_bars(ticker, start, end) -> list[OHLCVBar]`
-- [ ] Uses yfinance with `auto_adjust=True`
-- [ ] Unit test with mocked yfinance verifies parsing
-- [ ] Typecheck passes
+- [x] `src/smaps/collectors/price.py` exports `fetch_daily_bars(ticker, start, end) -> list[OHLCVBar]`
+- [x] Uses yfinance with `auto_adjust=True`
+- [x] Unit test with mocked yfinance verifies parsing
+- [x] Typecheck passes
 
 ### US-103: Add OHLCV table and idempotent upsert
 **Description:** As a developer, I want price bars persisted so that features can be computed offline.

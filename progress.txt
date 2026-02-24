@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-102: Implement Yahoo Finance daily downloader
+- US-103: Add OHLCV table and idempotent upsert
 
 ---
 
@@ -109,4 +109,28 @@
   - __post_init__ works with frozen dataclasses for validation (runs before freeze)
   - volume is int (not float) since it represents share count
   - First Phase 1 file — models.py will be imported by collectors and features later
+---
+
+## Iteration 7 — US-102: Implement Yahoo Finance daily downloader
+- What was done:
+  - Created src/smaps/collectors/ package with __init__.py
+  - Created src/smaps/collectors/price.py with fetch_daily_bars(ticker, start, end) -> list[OHLCVBar]
+  - Uses yfinance.download() with auto_adjust=True, progress=False
+  - End date offset by +1 day since yfinance end is exclusive
+  - Created tests/test_collectors_price.py with 5 mocked tests:
+    - test_returns_ohlcv_bars: verifies list[OHLCVBar] return type
+    - test_parses_fields_correctly: verifies field mapping from DataFrame
+    - test_empty_response: handles empty DataFrame gracefully
+    - test_passes_auto_adjust: verifies auto_adjust=True kwarg
+    - test_ticker_propagated: verifies ticker field set on all bars
+  - Added yfinance>=0.2 to pyproject.toml dependencies
+  - Added [[tool.mypy.overrides]] for yfinance.* to ignore_missing_imports (no py.typed)
+  - Verified: make test (22 passed), make typecheck (success)
+- Files affected: src/smaps/collectors/__init__.py (new), src/smaps/collectors/price.py (new), tests/test_collectors_price.py (new), pyproject.toml, PRD.md, progress.txt
+- Learnings for next cycles:
+  - yfinance has no py.typed marker; need mypy overrides with ignore_missing_imports = true
+  - mypy cache can become stale after pyproject.toml config changes; clear .mypy_cache if overrides don't take effect
+  - yfinance.download() end date is exclusive; add +1 day timedelta for inclusive end
+  - Use @patch("smaps.collectors.price.yf.download") to mock at the module level where it's imported
+  - DataFrame.iterrows() yields (Timestamp, Series) tuples; call .date() on timestamp for datetime.date
 ---

@@ -9,6 +9,7 @@ description = "Self-learning Market Analysis & Prediction System"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic-settings>=2.0",
+    "yfinance>=0.2",
 ]
 
 [project.optional-dependencies]
@@ -27,3 +28,7 @@ testpaths = ["tests"]
 [tool.mypy]
 mypy_path = "src"
 explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = "yfinance.*"
+ignore_missing_imports = true
