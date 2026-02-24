@@ -1,0 +1,14 @@
+# Progress Log
+
+## Learnings
+
+## Iteration 1 — US-001: Make daily stock movement predictions
+- What was done: Created `src/predictor.py` with `predict_movement(symbol)` returning a typed `Prediction` dataclass (label UP/DOWN, up/down probabilities). Features: 1d/5d/10d returns, MA5/MA20 ratio, volume change, 20d volatility. Model: LogisticRegression with StandardScaler. Entry point `run_daily_prediction(symbol)` is the daily scheduler target.
+- Files affected: `src/__init__.py`, `src/predictor.py`
+- Learnings for next cycles:
+  - Patterns: yfinance `ticker.history(period="2y", auto_adjust=True)` returns clean OHLCV DataFrame; use `auto_adjust=True` to avoid split/dividend distortions.
+  - Patterns: mypy passes cleanly with `--ignore-missing-imports` for yfinance/sklearn stubs.
+  - Patterns: Reserve the last feature row (no next-day close yet) for the live prediction; train on all prior rows.
+  - Traps: yfinance column names are capitalised (`Close`, `Volume`) — do not use lowercase.
+  - Helpful context: `Prediction` dataclass lives in `src/predictor.py`; downstream validation (US-002) can import it directly.
+---
