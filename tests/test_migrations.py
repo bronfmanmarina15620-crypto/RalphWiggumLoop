@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from smaps.db import (
     SCHEMA_VERSION,
     ensure_schema,
@@ -43,6 +45,18 @@ def test_migrate_from_version_zero():
         "SELECT name FROM sqlite_master WHERE type='table' AND name='ohlcv_daily'"
     )
     assert cur.fetchone() is not None
+    conn.close()
+
+
+def test_downgrade_raises():
+    """ensure_schema raises RuntimeError if DB version > SCHEMA_VERSION."""
+    conn = get_connection(":memory:")
+    conn.execute("CREATE TABLE schema_migrations (version INTEGER NOT NULL)")
+    conn.execute("INSERT INTO schema_migrations (version) VALUES (?)", (999,))
+    conn.commit()
+
+    with pytest.raises(RuntimeError, match="newer than"):
+        ensure_schema(conn)
     conn.close()
 
 

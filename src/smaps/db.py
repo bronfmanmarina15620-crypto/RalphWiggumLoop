@@ -50,5 +50,12 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
         "CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER NOT NULL)"
     )
     conn.commit()
+    current = get_schema_version(conn)
+    if current > SCHEMA_VERSION:
+        raise RuntimeError(
+            f"Database schema version ({current}) is newer than "
+            f"code schema version ({SCHEMA_VERSION}). "
+            f"Upgrade the application or use a compatible database."
+        )
     migrate(conn)
     set_schema_version(conn, SCHEMA_VERSION)
