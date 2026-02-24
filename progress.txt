@@ -12,3 +12,15 @@
   - Traps: yfinance column names are capitalised (`Close`, `Volume`) — do not use lowercase.
   - Helpful context: `Prediction` dataclass lives in `src/predictor.py`; downstream validation (US-002) can import it directly.
 ---
+
+## Iteration 2 — US-002: Validate prediction outcomes
+- What was done: Created `src/validator.py` with `validate_prediction(prediction)` returning a `ValidationResult` dataclass (actual_label UP/DOWN, correct bool, prediction_close, next_close). Entry point `run_daily_validation(prediction)` is the post-market-close scheduler target.
+- Files affected: `src/validator.py`
+- Learnings for next cycles:
+  - Patterns: Fetch a ±5/+10 day window around the prediction date using `ticker.history(start=, end=, auto_adjust=True)` to get actual prices.
+  - Patterns: Build a `dict[date, float]` via `pd.DatetimeIndex(series.index)` iteration to avoid mypy complaints about Hashable index types.
+  - Patterns: Use `pd.DatetimeIndex(close_series.index)` and enumerate with `close_series.iloc[i]` to extract typed Timestamps cleanly under mypy.
+  - Traps: `raw.index = pd.to_datetime(raw.index).date` assignment and subsequent `.loc[date, str]` indexing causes multiple mypy errors; the dict-based approach avoids all of them.
+  - Traps: `# type: ignore[...]` comments must exactly match the raised error codes; mismatches are themselves errors.
+  - Helpful context: `ValidationResult` dataclass lives in `src/validator.py`; downstream retraining (US-003) can import it directly to detect mispredictions.
+---

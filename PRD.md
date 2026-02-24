@@ -25,9 +25,9 @@ Build a system that forecasts whether a stock's price (e.g. Apple) will rise or 
 **Description:** As the system, I want to compare each prediction to actual next-day price movement so that I know if I was correct.
 
 **Acceptance Criteria:**
-- [ ] Historical price data fetched for comparison
-- [ ] Correctness evaluation performed automatically after market close
-- [ ] Typecheck passes
+- [x] Historical price data fetched for comparison
+- [x] Correctness evaluation performed automatically after market close
+- [x] Typecheck passes
 
 ### US-003: Adjust model on errors
 **Description:** As the self-learning component, I want the model to analyze mispredictions and update its parameters so that accuracy improves over time.
