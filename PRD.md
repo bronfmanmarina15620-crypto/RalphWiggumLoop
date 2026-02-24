@@ -35,10 +35,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want standard make targets so that CI and local dev use the same commands.
 
 **Acceptance Criteria:**
-- [ ] `Makefile` with targets: `test`, `lint`, `typecheck`
-- [ ] `make test` runs `python -m pytest -q` and exits 0
-- [ ] `make typecheck` runs `mypy src/` and exits 0
-- [ ] Typecheck passes
+- [x] `Makefile` with targets: `test`, `lint`, `typecheck`
+- [x] `make test` runs `python -m pytest -q` and exits 0
+- [x] `make typecheck` runs `mypy src/` and exits 0
+- [x] Typecheck passes
 
 ### US-003: Add config loader with environment variable support
 **Description:** As a developer, I want a typed config so that all settings are centralized and overridable.

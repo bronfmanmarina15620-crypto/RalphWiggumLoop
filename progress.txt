@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-002: Add Makefile with test and lint targets
+- US-003: Add config loader with environment variable support
 
 ---
 
@@ -28,4 +28,17 @@
   - src layout + editable install causes mypy "found twice" error; fix with mypy_path = "src" + explicit_package_bases = true
   - Phase 0 scaffold was already largely built but PRD checkboxes were never ticked after rewrite
   - Use `Callable` from typing, not builtin `callable`, as a type annotation
+---
+
+## Iteration 2 — US-002: Add Makefile with test and lint targets
+- What was done:
+  - Added `lint` target (`ruff check src/ tests/`) and `typecheck` target (`mypy src/`) to Makefile
+  - Added `ruff>=0.4` and `mypy>=1.0` to `[project.optional-dependencies] dev` in pyproject.toml
+  - Removed stale pre-rewrite files from src/ root (learner.py, predictor.py, scheduler.py, validator.py, __init__.py) that were causing mypy failures — these were from the old project structure before the PRD rewrite
+  - Verified: `make test` (9 passed), `make lint` (all checks passed), `make typecheck` (success) all exit 0
+- Files affected: Makefile, pyproject.toml, PRD.md, src/__init__.py (deleted), src/learner.py (deleted), src/predictor.py (deleted), src/scheduler.py (deleted), src/validator.py (deleted)
+- Learnings for next cycles:
+  - Stale files in src/ root from pre-rewrite era cause mypy to fail; they were safely removed since the package lives at src/smaps/
+  - ruff is a fast Python linter with zero config needed for basic linting
+  - Makefile .PHONY list must include all non-file targets
 ---
