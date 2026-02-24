@@ -1,0 +1,23 @@
+name: Scaffold Verify
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Run scaffold verification
+        run: |
+          chmod +x scripts/verify_scaffold.sh
+          bash scripts/verify_scaffold.sh
