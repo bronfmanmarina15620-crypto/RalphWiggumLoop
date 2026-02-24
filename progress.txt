@@ -9,6 +9,8 @@
 - Logging: stdlib logging only, no external deps
 - Layout: new code under src/smaps/; legacy src/*.py files left untouched
 - Phase 0 complete (US-0001..US-0005). US-0006 deferred.
+- Chose lightweight code-driven schema versioning (schema_migrations table) instead of Alembic for MVP.
+- US-0006 complete. Full Phase 0 done.
 
 ## Integration Notes
 - `pip install -e .` installs the smaps package in editable mode
@@ -18,4 +20,4 @@
 - Single source of truth verification: scripts/verify_scaffold.sh + CI scaffold_verify.yml
 
 ## Next Smallest Task
-- US-0006: Choose migrations approach (Alembic vs simple schema versioning) and implement minimal migration scaffold.
+- US-0101: Define canonical data model for OHLCV daily bars (Phase 1 begins).

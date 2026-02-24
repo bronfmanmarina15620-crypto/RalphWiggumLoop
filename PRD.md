@@ -45,12 +45,15 @@ degradation. No execution, no intraday signals.
   - [x] No external logging dependencies required
   - Verified by: `bash scripts/verify_scaffold.sh`
 
-- [ ] **US-0006**: Add local SQLite schema migration tool
-  - [ ] `src/smaps/db.py` exports `get_connection(db_path)` and `ensure_schema(conn)`
-  - [ ] `ensure_schema` creates `ohlcv_daily` table with columns: ticker, date, open, high, low, close, adj_close, volume
-  - [ ] Primary key is `(ticker, date)`
-  - [ ] `ensure_schema` is idempotent (safe to call multiple times)
-  - [ ] Unit test creates in-memory DB, calls `ensure_schema`, verifies table exists
+- [x] **US-0006**: Add local SQLite schema migration tool
+  - [x] `src/smaps/db.py` exports `get_connection(db_path)` and `ensure_schema(conn)`
+  - [x] `ensure_schema` creates `ohlcv_daily` table with columns: ticker, date, open, high, low, close, adj_close, volume
+  - [x] Primary key is `(ticker, date)`
+  - [x] `ensure_schema` is idempotent (safe to call multiple times)
+  - [x] Unit test creates in-memory DB, calls `ensure_schema`, verifies table exists
+  - [x] `schema_migrations` table tracks version; migrations are sequential and idempotent
+  - [x] `tests/test_migrations.py` covers version 0→1 upgrade, fresh DB, and idempotency
+  - Verified by: `bash scripts/verify_scaffold.sh`
 
 ---
 

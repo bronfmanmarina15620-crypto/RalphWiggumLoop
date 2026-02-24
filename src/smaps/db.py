@@ -1,8 +1,12 @@
-"""SQLite database helpers."""
+"""SQLite database helpers with lightweight schema versioning."""
 
 from __future__ import annotations
 
 import sqlite3
+
+from smaps.migrations import MIGRATIONS
+
+SCHEMA_VERSION = 1
 
 
 def get_connection(db_path: str = ":memory:") -> sqlite3.Connection:
@@ -12,21 +16,39 @@ def get_connection(db_path: str = ":memory:") -> sqlite3.Connection:
     return conn
 
 
+def get_schema_version(conn: sqlite3.Connection) -> int:
+    """Return the current schema version, or 0 if the tracking table is missing."""
+    cur = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations'"
+    )
+    if cur.fetchone() is None:
+        return 0
+    cur = conn.execute("SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1")
+    row = cur.fetchone()
+    return row[0] if row else 0
+
+
+def set_schema_version(conn: sqlite3.Connection, version: int) -> None:
+    """Record the current schema version."""
+    conn.execute("DELETE FROM schema_migrations")
+    conn.execute("INSERT INTO schema_migrations (version) VALUES (?)", (version,))
+    conn.commit()
+
+
+def migrate(conn: sqlite3.Connection) -> None:
+    """Apply all pending migrations up to SCHEMA_VERSION."""
+    current = get_schema_version(conn)
+    for version, fn in MIGRATIONS:
+        if version > current:
+            fn(conn)
+            conn.commit()
+
+
 def ensure_schema(conn: sqlite3.Connection) -> None:
-    """Create core tables if they do not already exist (idempotent)."""
+    """Create tracking table, run pending migrations, and set version (idempotent)."""
     conn.execute(
-        """\
-        CREATE TABLE IF NOT EXISTS ohlcv_daily (
-            ticker    TEXT    NOT NULL,
-            date      TEXT    NOT NULL,  -- YYYY-MM-DD
-            open      REAL,
-            high      REAL,
-            low       REAL,
-            close     REAL,
-            adj_close REAL,
-            volume    REAL,
-            PRIMARY KEY (ticker, date)
-        )
-        """
+        "CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER NOT NULL)"
     )
     conn.commit()
+    migrate(conn)
+    set_schema_version(conn, SCHEMA_VERSION)
