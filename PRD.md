@@ -33,10 +33,10 @@ Build a system that forecasts whether a stock's price (e.g. Apple) will rise or 
 **Description:** As the self-learning component, I want the model to analyze mispredictions and update its parameters so that accuracy improves over time.
 
 **Acceptance Criteria:**
-- [ ] Trigger retraining or weight update when prediction is incorrect
-- [ ] Learning occurs without human intervention
-- [ ] Model version/history recorded
-- [ ] Typecheck passes
+- [x] Trigger retraining or weight update when prediction is incorrect
+- [x] Learning occurs without human intervention
+- [x] Model version/history recorded
+- [x] Typecheck passes
 
 ### US-004: Background processing
 **Description:** As an operator, I want the entire prediction and learning workflow to run automatically each day without manual start.

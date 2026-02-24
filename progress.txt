@@ -24,3 +24,15 @@
   - Traps: `# type: ignore[...]` comments must exactly match the raised error codes; mismatches are themselves errors.
   - Helpful context: `ValidationResult` dataclass lives in `src/validator.py`; downstream retraining (US-003) can import it directly to detect mispredictions.
 ---
+
+## Iteration 3 — US-003: Adjust model on errors
+- What was done: Created `src/learner.py` with `learn_from_result(result)` returning a `ModelVersion` dataclass (or `None` when prediction was correct). `retrain_model(symbol, triggered_by)` fetches fresh 2-year data, rebuilds features via imported `_build_features`/`_get_feature_cols`, fits a new `LogisticRegression` + `StandardScaler`, persists the bundle to `models/<symbol>_<version_id>.joblib` via `joblib.dump`, and appends a record to `models/history.json`. Entry point `run_daily_learning(result)` is the post-validation scheduler target.
+- Files affected: `src/learner.py`
+- Learnings for next cycles:
+  - Patterns: Private helpers (`_build_features`, `_get_feature_cols`) can be imported from the same package without mypy complaints when using `--ignore-missing-imports`.
+  - Patterns: `joblib.dump({"scaler": scaler, "model": model}, path)` bundles both artifacts in one file; load with `joblib.load(path)`.
+  - Patterns: `MODELS_DIR.mkdir(parents=True, exist_ok=True)` before any write avoids FileNotFoundError on first run.
+  - Patterns: `# type: ignore[import-untyped]` on `import joblib` suppresses the missing-stubs warning cleanly.
+  - Traps: `uuid.uuid4().hex[:8]` gives a short collision-resistant version ID without external deps.
+  - Helpful context: `ModelVersion` dataclass lives in `src/learner.py`; downstream scheduler (US-004) can import `run_daily_learning` directly.
+---
