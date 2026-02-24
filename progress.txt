@@ -36,3 +36,15 @@
   - Traps: `uuid.uuid4().hex[:8]` gives a short collision-resistant version ID without external deps.
   - Helpful context: `ModelVersion` dataclass lives in `src/learner.py`; downstream scheduler (US-004) can import `run_daily_learning` directly.
 ---
+
+## Iteration 4 — US-004: Background processing
+- What was done: Created `src/scheduler.py` with `run_daily_workflow(symbol)` chaining `run_daily_prediction` → `run_daily_validation` → `run_daily_learning`, logging every step. `run_scheduler()` is an infinite loop sleeping until `DAILY_RUN_HOUR:DAILY_RUN_MINUTE` UTC each day. `__main__` supports `--once` flag for cron-based single-shot invocation (`0 22 * * 1-5 python -m src.scheduler --once`).
+- Files affected: `src/scheduler.py`
+- Learnings for next cycles:
+  - Patterns: `_seconds_until_next_run()` computes sleep duration by replacing hour/minute on `datetime.now(UTC)` then adding 1 day if the target has already passed today — avoids timezone headaches.
+  - Patterns: `from __future__ import annotations` allows `ModelVersion | None` union syntax on Python <3.10.
+  - Patterns: Exception-catch-and-log at each pipeline stage lets the scheduler continue for other symbols even if one step fails; use broad `Exception` with a note rather than a bare `except`.
+  - Patterns: Supporting `--once` in `__main__` makes the same module usable both as a long-lived daemon and a cron target without duplicating logic.
+  - Traps: `mypy --ignore-missing-imports` must be used (same as prior modules) for yfinance/sklearn/joblib stubs.
+  - Helpful context: `TRACKED_SYMBOLS` list at module top is the single place to add new ticker symbols.
+---

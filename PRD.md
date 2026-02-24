@@ -42,9 +42,9 @@ Build a system that forecasts whether a stock's price (e.g. Apple) will rise or 
 **Description:** As an operator, I want the entire prediction and learning workflow to run automatically each day without manual start.
 
 **Acceptance Criteria:**
-- [ ] Scheduled job executes daily
-- [ ] Logs record each prediction and learning step
-- [ ] Typecheck passes
+- [x] Scheduled job executes daily
+- [x] Logs record each prediction and learning step
+- [x] Typecheck passes
 
 ## Non‑Goals
 
