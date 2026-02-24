@@ -2,49 +2,19 @@
 
 ## Learnings
 
-## Iteration 1 — US-001: Make daily stock movement predictions
-- What was done: Created `src/predictor.py` with `predict_movement(symbol)` returning a typed `Prediction` dataclass (label UP/DOWN, up/down probabilities). Features: 1d/5d/10d returns, MA5/MA20 ratio, volume change, 20d volatility. Model: LogisticRegression with StandardScaler. Entry point `run_daily_prediction(symbol)` is the daily scheduler target.
-- Files affected: `src/__init__.py`, `src/predictor.py`
-- Learnings for next cycles:
-  - Patterns: yfinance `ticker.history(period="2y", auto_adjust=True)` returns clean OHLCV DataFrame; use `auto_adjust=True` to avoid split/dividend distortions.
-  - Patterns: mypy passes cleanly with `--ignore-missing-imports` for yfinance/sklearn stubs.
-  - Patterns: Reserve the last feature row (no next-day close yet) for the live prediction; train on all prior rows.
-  - Traps: yfinance column names are capitalised (`Close`, `Volume`) — do not use lowercase.
-  - Helpful context: `Prediction` dataclass lives in `src/predictor.py`; downstream validation (US-002) can import it directly.
----
+## Decisions
+- Packaging: pyproject.toml with src/ layout (no requirements.txt or setup.cfg)
+- DB: SQLite via stdlib sqlite3 for MVP (no SQLAlchemy)
+- Config: pydantic-settings for env var loading with typed defaults
+- Logging: stdlib logging only, no external deps
+- Layout: new code under src/smaps/; legacy src/*.py files left untouched
 
-## Iteration 2 — US-002: Validate prediction outcomes
-- What was done: Created `src/validator.py` with `validate_prediction(prediction)` returning a `ValidationResult` dataclass (actual_label UP/DOWN, correct bool, prediction_close, next_close). Entry point `run_daily_validation(prediction)` is the post-market-close scheduler target.
-- Files affected: `src/validator.py`
-- Learnings for next cycles:
-  - Patterns: Fetch a ±5/+10 day window around the prediction date using `ticker.history(start=, end=, auto_adjust=True)` to get actual prices.
-  - Patterns: Build a `dict[date, float]` via `pd.DatetimeIndex(series.index)` iteration to avoid mypy complaints about Hashable index types.
-  - Patterns: Use `pd.DatetimeIndex(close_series.index)` and enumerate with `close_series.iloc[i]` to extract typed Timestamps cleanly under mypy.
-  - Traps: `raw.index = pd.to_datetime(raw.index).date` assignment and subsequent `.loc[date, str]` indexing causes multiple mypy errors; the dict-based approach avoids all of them.
-  - Traps: `# type: ignore[...]` comments must exactly match the raised error codes; mismatches are themselves errors.
-  - Helpful context: `ValidationResult` dataclass lives in `src/validator.py`; downstream retraining (US-003) can import it directly to detect mispredictions.
----
+## Integration Notes
+- `pip install -e .` installs the smaps package in editable mode
+- `python -m pytest -q` runs all tests from repo root
+- `python -c "import smaps; print('ok')"` verifies package importability
+- SQLite DB created on-demand at path from SMAPS_DB_PATH (default: data/smaps.sqlite)
 
-## Iteration 3 — US-003: Adjust model on errors
-- What was done: Created `src/learner.py` with `learn_from_result(result)` returning a `ModelVersion` dataclass (or `None` when prediction was correct). `retrain_model(symbol, triggered_by)` fetches fresh 2-year data, rebuilds features via imported `_build_features`/`_get_feature_cols`, fits a new `LogisticRegression` + `StandardScaler`, persists the bundle to `models/<symbol>_<version_id>.joblib` via `joblib.dump`, and appends a record to `models/history.json`. Entry point `run_daily_learning(result)` is the post-validation scheduler target.
-- Files affected: `src/learner.py`
-- Learnings for next cycles:
-  - Patterns: Private helpers (`_build_features`, `_get_feature_cols`) can be imported from the same package without mypy complaints when using `--ignore-missing-imports`.
-  - Patterns: `joblib.dump({"scaler": scaler, "model": model}, path)` bundles both artifacts in one file; load with `joblib.load(path)`.
-  - Patterns: `MODELS_DIR.mkdir(parents=True, exist_ok=True)` before any write avoids FileNotFoundError on first run.
-  - Patterns: `# type: ignore[import-untyped]` on `import joblib` suppresses the missing-stubs warning cleanly.
-  - Traps: `uuid.uuid4().hex[:8]` gives a short collision-resistant version ID without external deps.
-  - Helpful context: `ModelVersion` dataclass lives in `src/learner.py`; downstream scheduler (US-004) can import `run_daily_learning` directly.
----
-
-## Iteration 4 — US-004: Background processing
-- What was done: Created `src/scheduler.py` with `run_daily_workflow(symbol)` chaining `run_daily_prediction` → `run_daily_validation` → `run_daily_learning`, logging every step. `run_scheduler()` is an infinite loop sleeping until `DAILY_RUN_HOUR:DAILY_RUN_MINUTE` UTC each day. `__main__` supports `--once` flag for cron-based single-shot invocation (`0 22 * * 1-5 python -m src.scheduler --once`).
-- Files affected: `src/scheduler.py`
-- Learnings for next cycles:
-  - Patterns: `_seconds_until_next_run()` computes sleep duration by replacing hour/minute on `datetime.now(UTC)` then adding 1 day if the target has already passed today — avoids timezone headaches.
-  - Patterns: `from __future__ import annotations` allows `ModelVersion | None` union syntax on Python <3.10.
-  - Patterns: Exception-catch-and-log at each pipeline stage lets the scheduler continue for other symbols even if one step fails; use broad `Exception` with a note rather than a bare `except`.
-  - Patterns: Supporting `--once` in `__main__` makes the same module usable both as a long-lived daemon and a cron target without duplicating logic.
-  - Traps: `mypy --ignore-missing-imports` must be used (same as prior modules) for yfinance/sklearn/joblib stubs.
-  - Helpful context: `TRACKED_SYMBOLS` list at module top is the single place to add new ticker symbols.
----
+## Next Smallest Task
+- US-0001: Mark complete once PRD.md and progress.txt are committed
+- US-0002: Mark complete once skeleton passes smoke tests
