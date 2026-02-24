@@ -25,11 +25,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want a Python project structure so that all future code has a consistent home.
 
 **Acceptance Criteria:**
-- [ ] `pyproject.toml` exists with project name `smaps`, Python >=3.11
-- [ ] `src/smaps/__init__.py` exists and exposes `__version__`
-- [ ] `tests/` directory exists with `conftest.py`
-- [ ] `pip install -e .` succeeds
-- [ ] Typecheck passes
+- [x] `pyproject.toml` exists with project name `smaps`, Python >=3.11
+- [x] `src/smaps/__init__.py` exists and exposes `__version__`
+- [x] `tests/` directory exists with `conftest.py`
+- [x] `pip install -e .` succeeds
+- [x] Typecheck passes
 
 ### US-002: Add Makefile with test and lint targets
 **Description:** As a developer, I want standard make targets so that CI and local dev use the same commands.

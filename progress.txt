@@ -12,4 +12,20 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-001: Create project skeleton (Phase 0 begins)
+- US-002: Add Makefile with test and lint targets
+
+---
+
+## Iteration 1 — US-001: Create project skeleton
+- What was done:
+  - Created tests/conftest.py (was missing from scaffold)
+  - Fixed mypy type error in migrations.py: `callable` → `Callable[[sqlite3.Connection], None]`
+  - Added py.typed marker to src/smaps/ for mypy PEP 561 compliance
+  - Added [tool.mypy] config to pyproject.toml (mypy_path, explicit_package_bases)
+  - Verified: pip install -e . succeeds, mypy passes, all 9 tests pass
+- Files affected: tests/conftest.py, src/smaps/migrations.py, src/smaps/py.typed, pyproject.toml, PRD.md
+- Learnings for next cycles:
+  - src layout + editable install causes mypy "found twice" error; fix with mypy_path = "src" + explicit_package_bases = true
+  - Phase 0 scaffold was already largely built but PRD checkboxes were never ticked after rewrite
+  - Use `Callable` from typing, not builtin `callable`, as a type annotation
+---
