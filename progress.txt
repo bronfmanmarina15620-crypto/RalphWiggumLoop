@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-101: Define OHLCV data model
+- US-102: Implement Yahoo Finance daily downloader
 
 ---
 
@@ -89,4 +89,24 @@
   - get_schema_version returns 0 if schema_migrations table doesn't exist yet
   - ensure_schema has downgrade protection: raises RuntimeError if DB version > code version
   - Phase 0 DB layer was fully pre-built; just needed explicit test for version tracking AC
+---
+
+## Iteration 6 — US-101: Define OHLCV data model
+- What was done:
+  - Created src/smaps/models.py with OHLCVBar frozen dataclass (slots=True)
+  - Fields: ticker (str), date (datetime.date), open/high/low/close (float), volume (int)
+  - __post_init__ validation: high >= low, volume >= 0
+  - Created tests/test_models.py with 5 tests:
+    - test_create_valid_bar: verifies all fields
+    - test_create_bar_high_equals_low: edge case (flat day)
+    - test_validation_high_less_than_low: rejects invalid high/low
+    - test_validation_negative_volume: rejects negative volume
+    - test_bar_is_frozen: confirms immutability
+  - Verified: make test (17 passed), make typecheck (success)
+- Files affected: src/smaps/models.py (new), tests/test_models.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - frozen=True + slots=True on dataclass gives immutability + memory efficiency
+  - __post_init__ works with frozen dataclasses for validation (runs before freeze)
+  - volume is int (not float) since it represents share count
+  - First Phase 1 file — models.py will be imported by collectors and features later
 ---

@@ -77,10 +77,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want a canonical bar model so that all data flows use a consistent structure.
 
 **Acceptance Criteria:**
-- [ ] Dataclass `OHLCVBar` in `src/smaps/models.py` with fields: ticker, date, open, high, low, close, volume
-- [ ] Validation: high >= low, volume >= 0
-- [ ] Unit test verifies creation and validation
-- [ ] Typecheck passes
+- [x] Dataclass `OHLCVBar` in `src/smaps/models.py` with fields: ticker, date, open, high, low, close, volume
+- [x] Validation: high >= low, volume >= 0
+- [x] Unit test verifies creation and validation
+- [x] Typecheck passes
 
 ### US-102: Implement Yahoo Finance daily downloader
 **Description:** As a developer, I want to fetch daily OHLCV bars so that the system has price data.
