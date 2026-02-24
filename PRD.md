@@ -1,271 +1,432 @@
 # PRD: SMAPS — Self-learning Market Analysis & Prediction System
 
-## Scope
+## Introduction
 
-Daily-only MVP: predict next-day stock direction (UP/DOWN/FLAT) for a watchlist of
-tickers, evaluate predictions against realized outcomes, and retrain automatically on
-degradation. No execution, no intraday signals.
+SMAPS is an autonomous stock prediction system that forecasts next-day price direction (UP or DOWN) for a small watchlist of 5–10 tickers. What makes it unique is its closed feedback loop: the system predicts, evaluates its accuracy against realized outcomes, and retrains its ML model automatically when performance degrades — no human intervention required.
 
----
+The system ingests three data sources — historical price data (OHLCV), news/social sentiment, and fundamental indicators — to build a rich feature set for prediction.
 
-## Phase 0 — Repo / Infra Skeleton
+## Goals
 
-- [x] **US-0001**: Create PRD.md + progress.txt (scaffold)
-  - [x] `PRD.md` exists at repo root with all phases and user stories listed
-  - [x] `progress.txt` exists at repo root with sections: Learnings, Decisions, Integration Notes, Next Smallest Task
-  - [x] Both files are committed and trackable by RALPH
-  - Verified by: `bash scripts/verify_scaffold.sh`
+- Predict next-day direction (UP/DOWN) for each ticker in a configurable watchlist
+- Ingest and combine price, sentiment, and fundamental data into a unified feature pipeline
+- Evaluate predictions daily against actual market outcomes
+- Automatically retrain the ML model when accuracy drops below a threshold
+- Run the full predict → evaluate → retrain loop autonomously on a daily schedule
+- Persist all predictions, evaluations, and model versions for auditability
 
-- [x] **US-0002**: Add Python project skeleton (src/, tests/, pyproject.toml)
-  - [x] `pyproject.toml` exists with project name `smaps`, Python >=3.11
-  - [x] `src/smaps/__init__.py` exists and exposes `__version__`
-  - [x] `tests/` directory exists with at least one test file
-  - [x] `pip install -e .` succeeds without errors
-  - [x] `python -c "import smaps; print(smaps.__version__)"` prints a version string
-  - Verified by: `bash scripts/verify_scaffold.sh`
-
-- [x] **US-0003**: Add `make test` / `pytest -q` + one smoke test
-  - [x] `Makefile` exists with `test` and `smoke` targets
-  - [x] `make test` runs `python -m pytest -q` and exits 0
-  - [x] `tests/test_smoke.py` contains at least 2 passing tests (import + DB schema)
-  - [x] `make smoke` runs `python -c "import smaps; print('ok')"` and exits 0
-  - Verified by: `bash scripts/verify_scaffold.sh`
-
-- [x] **US-0004**: Add `.env.example` + config loader
-  - [x] `.env.example` exists with placeholder keys: `SMAPS_TICKERS`, `SMAPS_DB_PATH`, `SMAPS_LOG_LEVEL`
-  - [x] `src/smaps/config.py` defines a `Settings` class with typed fields and defaults
-  - [x] `Settings()` instantiation succeeds with no env vars set (all defaults work)
-  - [x] Environment variable overrides are respected (e.g., `SMAPS_LOG_LEVEL=DEBUG`)
-  - Verified by: `bash scripts/verify_scaffold.sh`
-
-- [x] **US-0005**: Add logging baseline + structured run_id
-  - [x] `src/smaps/logging.py` exports `get_logger(name, run_id=None)`
-  - [x] Logger output includes ISO timestamp, level, name, and run_id when provided
-  - [x] `get_logger("test")` returns a usable `logging.Logger` instance
-  - [x] No external logging dependencies required
-  - Verified by: `bash scripts/verify_scaffold.sh`
-
-- [x] **US-0006**: Add local SQLite schema migration tool
-  - [x] `src/smaps/db.py` exports `get_connection(db_path)` and `ensure_schema(conn)`
-  - [x] `ensure_schema` creates `ohlcv_daily` table with columns: ticker, date, open, high, low, close, adj_close, volume
-  - [x] Primary key is `(ticker, date)`
-  - [x] `ensure_schema` is idempotent (safe to call multiple times)
-  - [x] Unit test creates in-memory DB, calls `ensure_schema`, verifies table exists
-  - [x] `schema_migrations` table tracks version; migrations are sequential and idempotent
-  - [x] `tests/test_migrations.py` covers version 0→1 upgrade, fresh DB, and idempotency
-  - Verified by: `bash scripts/verify_scaffold.sh`
+## User Stories
 
 ---
 
-## Phase 1 — DataCollector (Daily only, V1)
+### Phase 0 — Project Scaffold
 
-- [ ] **US-0101**: Define canonical data model for OHLCV daily bars
-  - [ ] Pydantic model (or dataclass) `OHLCVBar` defined in `src/smaps/models.py`
-  - [ ] Fields: ticker (str), date (date), open (float), high (float), low (float), close (float), adj_close (float), volume (float)
-  - [ ] Validation: high >= low, volume >= 0
-  - [ ] Unit test verifies model creation and validation
+### US-001: Create project skeleton
+**Description:** As a developer, I want a Python project structure so that all future code has a consistent home.
 
-- [ ] **US-0102**: Implement Yahoo Finance daily downloader for 1 ticker
-  - [ ] `src/smaps/collector.py` exports `fetch_daily_bars(ticker, start, end) -> list[OHLCVBar]`
-  - [ ] Function downloads OHLCV data via yfinance and returns validated bars
-  - [ ] Bars are inserted into `ohlcv_daily` table
-  - [ ] Unit test with mocked yfinance response verifies parsing
+**Acceptance Criteria:**
+- [ ] `pyproject.toml` exists with project name `smaps`, Python >=3.11
+- [ ] `src/smaps/__init__.py` exists and exposes `__version__`
+- [ ] `tests/` directory exists with `conftest.py`
+- [ ] `pip install -e .` succeeds
+- [ ] Typecheck passes
 
-- [ ] **US-0103**: Add adjusted prices handling (splits/dividends)
-  - [ ] Downloader uses `auto_adjust=True` or equivalent to handle corporate actions
-  - [ ] `adj_close` column is populated correctly
-  - [ ] Integration test confirms adjusted vs raw prices differ when expected
+### US-002: Add Makefile with test and lint targets
+**Description:** As a developer, I want standard make targets so that CI and local dev use the same commands.
 
-- [ ] **US-0104**: Add data-quality checks: range/outliers/missing policy
-  - [ ] Function `check_bar_quality(bar) -> list[str]` returns list of warnings
-  - [ ] Checks: OHLC range sanity, zero-volume detection, missing-date gaps
-  - [ ] Quality warnings are logged but do not block ingestion
-  - [ ] Unit tests cover each check category
+**Acceptance Criteria:**
+- [ ] `Makefile` with targets: `test`, `lint`, `typecheck`
+- [ ] `make test` runs `python -m pytest -q` and exits 0
+- [ ] `make typecheck` runs `mypy src/` and exits 0
+- [ ] Typecheck passes
 
-- [ ] **US-0105**: Add multi-ticker ingestion (N tickers) + idempotent upsert
-  - [ ] `ingest_tickers(tickers, start, end)` processes a list of tickers
-  - [ ] Uses `INSERT OR REPLACE` (upsert) to avoid duplicates
-  - [ ] Errors for one ticker do not block others
-  - [ ] Unit test: insert same row twice, verify single row in DB
+### US-003: Add config loader with environment variable support
+**Description:** As a developer, I want a typed config so that all settings are centralized and overridable.
 
-- [ ] **US-0106**: Add provider fallback interface (stub)
-  - [ ] `DataProvider` protocol/ABC defined with `fetch_daily_bars` method signature
-  - [ ] `YahooProvider` implements the protocol
-  - [ ] `FallbackProvider` stub accepts primary + fallback providers
-  - [ ] Unit test verifies fallback is called when primary raises
+**Acceptance Criteria:**
+- [ ] `.env.example` with keys: `SMAPS_TICKERS`, `SMAPS_DB_PATH`, `SMAPS_LOG_LEVEL`
+- [ ] `src/smaps/config.py` defines `Settings` dataclass with typed fields and defaults
+- [ ] `Settings()` works with no env vars (all defaults)
+- [ ] Env var overrides are respected
+- [ ] Typecheck passes
 
----
+### US-004: Add structured logging with run_id
+**Description:** As a developer, I want structured logs so that each pipeline run is traceable.
 
-## Phase 2 — FeatureEngineer
+**Acceptance Criteria:**
+- [ ] `src/smaps/logging.py` exports `get_logger(name, run_id=None)`
+- [ ] Output includes ISO timestamp, level, name, and run_id
+- [ ] Unit test verifies logger returns `logging.Logger`
+- [ ] Typecheck passes
 
-- [ ] **US-0201**: Feature pipeline interface: input bars -> output feature frame
-  - [ ] Interface/protocol `FeaturePipeline` defined with `transform(bars) -> DataFrame` signature
-  - [ ] Docstring specifies input/output contract
-  - [ ] Unit test stub exists
+### US-005: Add SQLite database layer with schema migrations
+**Description:** As a developer, I want a local DB with versioned migrations so that schema evolves safely.
 
-- [ ] **US-0202**: Implement MA/EMA/MACD features
-  - [ ] Functions compute MA(5,20), EMA(12,26), MACD line + signal
-  - [ ] Output columns are named consistently (e.g., `ma_5`, `ema_12`, `macd`)
-  - [ ] Unit test with synthetic data verifies output shape and column names
-
-- [ ] **US-0203**: Implement RSI/CCI/Stoch features
-  - [ ] Functions compute RSI(14), CCI(20), Stochastic %K/%D
-  - [ ] NaN handling documented (first N rows)
-  - [ ] Unit test verifies output range (RSI 0-100, Stoch 0-100)
-
-- [ ] **US-0204**: Implement ATR + Bollinger features
-  - [ ] Functions compute ATR(14) and Bollinger Bands (20, 2σ)
-  - [ ] Unit test verifies Bollinger upper > middle > lower
-
-- [ ] **US-0205**: Feature snapshot persistence (store feature vector per date+ticker)
-  - [ ] Table `feature_snapshots` created with schema defined
-  - [ ] Snapshot includes feature_date, ticker, JSON blob of feature values, pipeline_version
-  - [ ] Unit test verifies round-trip: save and load snapshot
-
-- [ ] **US-0206**: Prevent leakage (no future bars) unit tests
-  - [ ] Feature computation at date T uses only bars dated <= T
-  - [ ] Unit test: inject known future data, verify it does not appear in features at T
-  - [ ] Documentation note on leakage prevention strategy
+**Acceptance Criteria:**
+- [ ] `src/smaps/db.py` exports `get_connection(db_path)` and `ensure_schema(conn)`
+- [ ] `schema_migrations` table tracks applied version
+- [ ] Migrations are sequential and idempotent
+- [ ] Unit test: fresh DB → ensure_schema → verify tables exist
+- [ ] Typecheck passes
 
 ---
 
-## Phase 3 — Prediction Agent v1
+### Phase 1 — Data Collection
 
-- [ ] **US-0301**: Define prediction target: direction (UP/DOWN/FLAT) at horizon 1d
-  - [ ] Enum or literal type for direction defined
-  - [ ] Threshold for FLAT defined and configurable (e.g., ±0.1%)
-  - [ ] Docstring specifies labeling logic
+### US-101: Define OHLCV data model
+**Description:** As a developer, I want a canonical bar model so that all data flows use a consistent structure.
 
-- [ ] **US-0302**: Train baseline model (LogReg / XGBoost)
-  - [ ] Training function accepts feature DataFrame + labels, returns fitted model
-  - [ ] Default algorithm is LogisticRegression; XGBoost available via config flag
-  - [ ] Train/test split strategy documented (time-based, no shuffle)
+**Acceptance Criteria:**
+- [ ] Dataclass `OHLCVBar` in `src/smaps/models.py` with fields: ticker, date, open, high, low, close, volume
+- [ ] Validation: high >= low, volume >= 0
+- [ ] Unit test verifies creation and validation
+- [ ] Typecheck passes
 
-- [ ] **US-0303**: Calibrate probabilities (Platt/Isotonic)
-  - [ ] Calibration wrapper applied post-training
-  - [ ] Calibrated model exposes `predict_proba`
-  - [ ] Unit test: calibrated probabilities sum to 1.0
+### US-102: Implement Yahoo Finance daily downloader
+**Description:** As a developer, I want to fetch daily OHLCV bars so that the system has price data.
 
-- [ ] **US-0304**: Persist model artifacts + model_version
-  - [ ] Model saved to `models/<ticker>_<version>.joblib`
-  - [ ] `models/registry.json` tracks version history
-  - [ ] Load function retrieves latest model for a ticker
+**Acceptance Criteria:**
+- [ ] `src/smaps/collectors/price.py` exports `fetch_daily_bars(ticker, start, end) -> list[OHLCVBar]`
+- [ ] Uses yfinance with `auto_adjust=True`
+- [ ] Unit test with mocked yfinance verifies parsing
+- [ ] Typecheck passes
 
-- [ ] **US-0305**: Prediction API: {direction, confidence, horizon}
-  - [ ] Function `predict(ticker, date) -> PredictionResult`
-  - [ ] `PredictionResult` contains direction, confidence (0-1), horizon, model_version
-  - [ ] Unit test with mock model verifies output schema
+### US-103: Add OHLCV table and idempotent upsert
+**Description:** As a developer, I want price bars persisted so that features can be computed offline.
 
-- [ ] **US-0306**: Save predictions with timestamp + feature_snapshot_id + model_version
-  - [ ] Table `predictions` created with foreign keys to feature_snapshots and model registry
-  - [ ] Each prediction row includes created_at timestamp
-  - [ ] Unit test verifies prediction persistence
+**Acceptance Criteria:**
+- [ ] Migration adds `ohlcv_daily` table: ticker, date, open, high, low, close, volume; PK (ticker, date)
+- [ ] `INSERT OR REPLACE` upsert avoids duplicates
+- [ ] Unit test: insert same row twice → single row in DB
+- [ ] Typecheck passes
 
----
+### US-104: Implement sentiment data collector
+**Description:** As a developer, I want to ingest daily sentiment scores so that predictions include market mood.
 
-## Phase 4 — Evaluator
+**Acceptance Criteria:**
+- [ ] `src/smaps/collectors/sentiment.py` exports `fetch_sentiment(ticker, date) -> SentimentScore`
+- [ ] `SentimentScore` dataclass: ticker, date, score (float -1..1), source (str)
+- [ ] Provider uses a free news API or RSS-based heuristic
+- [ ] Unit test with mocked response verifies parsing
+- [ ] Typecheck passes
 
-- [ ] **US-0401**: Match predictions to realized outcome
-  - [ ] Function `evaluate_prediction(prediction_id) -> EvalResult`
-  - [ ] Matches predicted direction to actual next-day movement
-  - [ ] Handles missing market data gracefully (weekends, holidays)
+### US-105: Add sentiment table and persistence
+**Description:** As a developer, I want sentiment scores stored so that features can use them.
 
-- [ ] **US-0402**: Compute accuracy + per-class precision/recall
-  - [ ] Metrics computed over configurable window (default 90 days)
-  - [ ] Breakdown by direction class (UP/DOWN/FLAT)
-  - [ ] Output serializable as JSON
+**Acceptance Criteria:**
+- [ ] Migration adds `sentiment_daily` table: ticker, date, score, source; PK (ticker, date, source)
+- [ ] Upsert logic avoids duplicates
+- [ ] Unit test verifies round-trip persistence
+- [ ] Typecheck passes
 
-- [ ] **US-0403**: Compute calibration error
-  - [ ] Expected Calibration Error (ECE) computed with configurable bin count
-  - [ ] Docstring explains ECE formula and interpretation
+### US-106: Implement fundamentals data collector
+**Description:** As a developer, I want to ingest key fundamental metrics so that predictions include valuation context.
 
-- [ ] **US-0404**: Rolling 90D window report serialization
-  - [ ] Report dataclass with accuracy, precision, recall, ECE, window dates
-  - [ ] Serialized to `reports/eval_<date>.json`
-  - [ ] Unit test verifies report schema
+**Acceptance Criteria:**
+- [ ] `src/smaps/collectors/fundamentals.py` exports `fetch_fundamentals(ticker) -> Fundamentals`
+- [ ] `Fundamentals` dataclass: ticker, date, pe_ratio, market_cap, eps, revenue (all optional floats)
+- [ ] Uses yfinance `.info` or equivalent free source
+- [ ] Unit test with mocked response verifies parsing
+- [ ] Typecheck passes
 
----
+### US-107: Add fundamentals table and persistence
+**Description:** As a developer, I want fundamentals stored so that features can reference them.
 
-## Phase 5 — MetaLearner + RiskGuard
+**Acceptance Criteria:**
+- [ ] Migration adds `fundamentals_daily` table: ticker, date, pe_ratio, market_cap, eps, revenue
+- [ ] PK (ticker, date); upsert logic
+- [ ] Unit test verifies round-trip persistence
+- [ ] Typecheck passes
 
-- [ ] **US-0501**: Retrain trigger rule (performance degradation threshold)
-  - [ ] Configurable accuracy threshold (default: drop below 50% over 30D)
-  - [ ] Trigger emits structured log event
-  - [ ] Docstring specifies trigger logic
+### US-108: Add multi-ticker ingestion orchestrator
+**Description:** As a developer, I want all tickers ingested in one call so that the pipeline is simple.
 
-- [ ] **US-0502**: Optuna HPO (small search space)
-  - [ ] Optuna study with ≤10 trials for regularization + feature subset
-  - [ ] Best params logged and persisted
-  - [ ] Interface defined; implementation can be stubbed initially
-
-- [ ] **US-0503**: OOS validation gate before deploying model_version
-  - [ ] Hold-out OOS period (e.g., last 30 days) used for validation
-  - [ ] Model only promoted if OOS accuracy > threshold
-  - [ ] Gate decision logged
-
-- [ ] **US-0504**: Rollback rule if new model underperforms
-  - [ ] Compare new model vs current on OOS data
-  - [ ] Rollback to previous version if new is worse
-  - [ ] Rollback event logged with reason
-
-- [ ] **US-0505**: Drift detection on features (KS-test)
-  - [ ] KS-test applied to each feature column: training distribution vs recent window
-  - [ ] Alert if p-value < configurable threshold (default 0.05)
-  - [ ] Drift report persisted
-
-- [ ] **US-0506**: Overfit guard (train/val gap gate + circuit breaker)
-  - [ ] Train/val accuracy gap threshold defined (e.g., >15% gap = overfit)
-  - [ ] Circuit breaker halts deployment if gap exceeded
-  - [ ] Docstring explains gap computation
+**Acceptance Criteria:**
+- [ ] `src/smaps/collectors/ingest.py` exports `ingest_all(tickers, start, end)`
+- [ ] Calls price, sentiment, and fundamentals collectors for each ticker
+- [ ] Error in one ticker does not block others
+- [ ] Each step logged with timing
+- [ ] Typecheck passes
 
 ---
 
-## Phase 6 — Orchestrator + Scheduling
+### Phase 2 — Feature Engineering
 
-- [ ] **US-0601**: Orchestrator run: collect -> features -> predict
-  - [ ] `run_pipeline(tickers, date)` chains collector, feature engineer, predictor
-  - [ ] Each step logged with timing
-  - [ ] Failure in one step stops pipeline for that ticker, continues others
+### US-201: Define feature pipeline interface
+**Description:** As a developer, I want a standard interface so that feature pipelines are composable.
 
-- [ ] **US-0602**: Daily schedule (GitHub Actions)
-  - [ ] `.github/workflows/daily.yml` runs pipeline on cron (e.g., 22:00 UTC weekdays)
-  - [ ] Workflow installs deps, runs pipeline, commits results
-  - [ ] Manual trigger (`workflow_dispatch`) supported
+**Acceptance Criteria:**
+- [ ] Protocol `FeaturePipeline` with `transform(ticker, as_of_date) -> dict[str, float]`
+- [ ] Docstring specifies no-future-data contract
+- [ ] Typecheck passes
 
-- [ ] **US-0603**: Evaluator schedule (after close / next day)
-  - [ ] Separate workflow or step runs evaluator after market data available
-  - [ ] Evaluator results persisted before next prediction cycle
-  - [ ] Schedule documented
+### US-202: Implement technical indicator features
+**Description:** As a developer, I want price-derived features so that the model captures momentum and volatility patterns.
 
-- [ ] **US-0604**: Message bus (V1: DB queue)
-  - [ ] Table `events` with columns: id, event_type, payload (JSON), created_at, processed_at
-  - [ ] Producer writes events; consumer reads unprocessed events
-  - [ ] Interface designed for future Kafka migration
+**Acceptance Criteria:**
+- [ ] Computes: return_1d, return_5d, return_10d, MA(5)/MA(20) ratio, volume_change_1d, volatility_20d, RSI(14)
+- [ ] Uses only bars dated <= as_of_date (no leakage)
+- [ ] Unit test with synthetic data verifies output keys and shape
+- [ ] Typecheck passes
+
+### US-203: Implement sentiment features
+**Description:** As a developer, I want sentiment-derived features so that the model captures market mood.
+
+**Acceptance Criteria:**
+- [ ] Computes: latest_sentiment_score, sentiment_ma_5d (5-day rolling average)
+- [ ] Gracefully returns 0.0 if no sentiment data available
+- [ ] Unit test verifies output
+- [ ] Typecheck passes
+
+### US-204: Implement fundamental features
+**Description:** As a developer, I want fundamental-derived features so that the model captures valuation context.
+
+**Acceptance Criteria:**
+- [ ] Computes: pe_ratio, eps, market_cap (latest available values)
+- [ ] Gracefully returns None/NaN for missing fields
+- [ ] Unit test verifies output
+- [ ] Typecheck passes
+
+### US-205: Combine all features into unified vector
+**Description:** As a developer, I want one function that returns the full feature vector for a ticker+date.
+
+**Acceptance Criteria:**
+- [ ] `build_features(ticker, as_of_date) -> dict[str, float]` merges technical + sentiment + fundamental features
+- [ ] Returns consistent key set regardless of data availability
+- [ ] Unit test verifies combined output
+- [ ] Typecheck passes
+
+### US-206: Add feature snapshot persistence
+**Description:** As a developer, I want feature vectors stored so that predictions are reproducible.
+
+**Acceptance Criteria:**
+- [ ] Migration adds `feature_snapshots` table: id, ticker, feature_date, features_json, pipeline_version
+- [ ] Round-trip test: save and load snapshot, verify equality
+- [ ] Typecheck passes
+
+### US-207: Add leakage prevention tests
+**Description:** As a developer, I want proof that no future data leaks into features.
+
+**Acceptance Criteria:**
+- [ ] Test: inject known future bar, verify it does not appear in features at date T
+- [ ] Test: feature_date in snapshot <= as_of_date
+- [ ] Typecheck passes
 
 ---
 
-## Phase 7 — Reporting / API
+### Phase 3 — Prediction Model
 
-- [ ] **US-0701**: FastAPI endpoint: latest predictions per ticker
-  - [ ] `GET /predictions/latest` returns JSON array of latest predictions
-  - [ ] Filterable by ticker query parameter
-  - [ ] Response schema documented
+### US-301: Define prediction result model
+**Description:** As a developer, I want a canonical prediction type so that downstream code has a stable contract.
 
-- [ ] **US-0702**: Endpoint: performance summary (90D)
-  - [ ] `GET /performance` returns accuracy, precision, recall, ECE for last 90 days
-  - [ ] Filterable by ticker
-  - [ ] Response includes window start/end dates
+**Acceptance Criteria:**
+- [ ] Dataclass `PredictionResult`: ticker, prediction_date, direction (UP/DOWN), confidence (0-1), model_version
+- [ ] Unit test verifies creation
+- [ ] Typecheck passes
 
-- [ ] **US-0703**: Minimal dashboard (static HTML) showing metrics + latest signals
-  - [ ] HTML page generated from latest report + predictions
-  - [ ] Shows: prediction table, accuracy chart, model version info
-  - [ ] Serveable as static file or via FastAPI
+### US-302: Train baseline model (Logistic Regression)
+**Description:** As a developer, I want a trainable model so that the system can make predictions.
+
+**Acceptance Criteria:**
+- [ ] `src/smaps/model/trainer.py` exports `train_model(features_df, labels) -> TrainedModel`
+- [ ] Uses time-based train/test split (no shuffle)
+- [ ] Default: LogisticRegression with StandardScaler
+- [ ] Unit test: train on synthetic data, verify model produces predictions
+- [ ] Typecheck passes
+
+### US-303: Persist model artifacts with versioning
+**Description:** As a developer, I want models saved and versioned so that I can track which model made which prediction.
+
+**Acceptance Criteria:**
+- [ ] Model saved to `models/<ticker>_v<N>.joblib`
+- [ ] Migration adds `model_registry` table: id, ticker, version, trained_at, metrics_json, artifact_path
+- [ ] `load_latest_model(ticker)` retrieves the most recent model
+- [ ] Unit test verifies save/load round-trip
+- [ ] Typecheck passes
+
+### US-304: Implement daily prediction function
+**Description:** As a developer, I want one function that takes a ticker and date and returns a prediction.
+
+**Acceptance Criteria:**
+- [ ] `predict(ticker, date) -> PredictionResult` loads model, builds features, returns prediction
+- [ ] Falls back to error if no trained model exists
+- [ ] Unit test with mock model verifies output schema
+- [ ] Typecheck passes
+
+### US-305: Persist predictions to database
+**Description:** As a developer, I want predictions stored so that evaluation can match them to outcomes.
+
+**Acceptance Criteria:**
+- [ ] Migration adds `predictions` table: id, ticker, prediction_date, direction, confidence, model_version, feature_snapshot_id, created_at
+- [ ] Unit test verifies prediction round-trip
+- [ ] Typecheck passes
+
+---
+
+### Phase 4 — Evaluator
+
+### US-401: Match predictions to realized outcomes
+**Description:** As a developer, I want each prediction scored against actual price movement so that accuracy is measurable.
+
+**Acceptance Criteria:**
+- [ ] `evaluate_prediction(prediction_id) -> EvalResult` compares predicted vs actual direction
+- [ ] Handles weekends/holidays (skips non-trading days)
+- [ ] `EvalResult`: prediction_id, actual_direction, is_correct (bool), evaluated_at
+- [ ] Unit test verifies correct/incorrect classification
+- [ ] Typecheck passes
+
+### US-402: Compute rolling accuracy metrics
+**Description:** As a developer, I want aggregate accuracy stats so that model health is monitorable.
+
+**Acceptance Criteria:**
+- [ ] `compute_metrics(ticker, window_days=90) -> MetricsReport`
+- [ ] Includes: accuracy, precision, recall (per UP/DOWN class), total predictions
+- [ ] Output serializable as JSON
+- [ ] Unit test with known outcomes verifies metric calculation
+- [ ] Typecheck passes
+
+### US-403: Persist evaluation results
+**Description:** As a developer, I want evaluation results stored so that the retrain trigger can query them.
+
+**Acceptance Criteria:**
+- [ ] Migration adds `evaluations` table: id, prediction_id, actual_direction, is_correct, evaluated_at
+- [ ] `reports/` directory stores JSON metric reports
+- [ ] Unit test verifies persistence
+- [ ] Typecheck passes
+
+---
+
+### Phase 5 — Self-Learning Loop
+
+### US-501: Implement retrain trigger based on accuracy degradation
+**Description:** As a developer, I want the system to detect when it's underperforming so that retraining happens automatically.
+
+**Acceptance Criteria:**
+- [ ] `should_retrain(ticker, threshold=0.50, window_days=30) -> bool`
+- [ ] Returns True when rolling accuracy drops below threshold
+- [ ] Emits structured log event on trigger
+- [ ] Unit test with synthetic eval results verifies trigger logic
+- [ ] Typecheck passes
+
+### US-502: Implement automated retraining pipeline
+**Description:** As a developer, I want retraining to happen end-to-end so that no human intervention is needed.
+
+**Acceptance Criteria:**
+- [ ] `retrain(ticker)` fetches latest data, builds features, trains new model, saves with incremented version
+- [ ] Uses all available historical data (not just recent window)
+- [ ] Logs new model version and training metrics
+- [ ] Unit test verifies new model version is created
+- [ ] Typecheck passes
+
+### US-503: Add out-of-sample validation gate
+**Description:** As a developer, I want a safety check before deploying a new model so that bad models don't go live.
+
+**Acceptance Criteria:**
+- [ ] Hold-out OOS period (last 30 days) used for validation
+- [ ] New model only promoted if OOS accuracy > current model accuracy
+- [ ] Gate decision logged with metrics
+- [ ] Unit test verifies gate blocks inferior model
+- [ ] Typecheck passes
+
+### US-504: Add rollback on regression
+**Description:** As a developer, I want automatic rollback so that a bad retrain doesn't degrade the system.
+
+**Acceptance Criteria:**
+- [ ] If new model fails OOS gate, previous model version remains active
+- [ ] Rollback event logged with reason and metrics
+- [ ] Unit test verifies rollback keeps previous model active
+- [ ] Typecheck passes
+
+### US-505: Add feature drift detection
+**Description:** As a developer, I want drift alerts so that the system knows when its inputs are changing.
+
+**Acceptance Criteria:**
+- [ ] KS-test on each feature: training distribution vs recent 30-day window
+- [ ] Alert logged if p-value < 0.05
+- [ ] Drift report persisted to `reports/drift_<date>.json`
+- [ ] Unit test with shifted distribution verifies detection
+- [ ] Typecheck passes
+
+---
+
+### Phase 6 — Orchestrator & Scheduling
+
+### US-601: Implement daily pipeline orchestrator
+**Description:** As a developer, I want one entry point that runs the full daily cycle.
+
+**Acceptance Criteria:**
+- [ ] `run_pipeline(tickers, date)` chains: ingest → features → predict → evaluate → retrain-if-needed
+- [ ] Each step logged with timing and run_id
+- [ ] Failure in one ticker does not block others
+- [ ] Unit test with mocked components verifies call sequence
+- [ ] Typecheck passes
+
+### US-602: Add GitHub Actions daily schedule
+**Description:** As a developer, I want the pipeline to run automatically every trading day.
+
+**Acceptance Criteria:**
+- [ ] `.github/workflows/daily.yml` runs pipeline on cron (weekdays 22:00 UTC)
+- [ ] Installs dependencies, runs `python -m smaps.pipeline`
+- [ ] Manual trigger via `workflow_dispatch` supported
+- [ ] Typecheck passes
+
+### US-603: Add CLI entry point
+**Description:** As a developer, I want a CLI so that I can run the pipeline manually.
+
+**Acceptance Criteria:**
+- [ ] `python -m smaps.pipeline --tickers AAPL,MSFT --date 2025-01-15` runs full pipeline
+- [ ] `--dry-run` flag logs steps without executing
+- [ ] `--help` shows usage
+- [ ] Typecheck passes
+
+---
+
+### Phase 7 — Reporting & Dashboard
+
+### US-701: Add FastAPI endpoint for latest predictions
+**Description:** As a user, I want to see today's predictions so that I know the system's current signals.
+
+**Acceptance Criteria:**
+- [ ] `GET /predictions/latest` returns JSON array of latest predictions
+- [ ] Filterable by `?ticker=AAPL`
+- [ ] Response includes direction, confidence, model_version, prediction_date
+- [ ] Typecheck passes
+- [ ] Verify changes work in browser
+
+### US-702: Add performance summary endpoint
+**Description:** As a user, I want to see how accurate the system is so that I can gauge trust.
+
+**Acceptance Criteria:**
+- [ ] `GET /performance` returns 90-day accuracy, precision, recall per ticker
+- [ ] Response includes window start/end dates
+- [ ] Typecheck passes
+- [ ] Verify changes work in browser
+
+### US-703: Add minimal HTML dashboard
+**Description:** As a user, I want a visual dashboard so that I can monitor predictions and accuracy at a glance.
+
+**Acceptance Criteria:**
+- [ ] Static HTML page showing: prediction table, accuracy chart, last retrain date
+- [ ] Served via FastAPI at `/dashboard`
+- [ ] Auto-refreshes data on load
+- [ ] Typecheck passes
+- [ ] Verify changes work in browser
 
 ---
 
 ## Non-Goals
 
-- Live trading execution or order placement
-- Intraday signals or sub-daily predictions
-- Guaranteed profitability or financial advice
-- Multi-asset-class support (equities only for MVP)
+- **No live trading**: The system predicts direction only; it does not place orders or manage a portfolio
+- **No intraday signals**: Predictions are daily horizon only; no sub-day or real-time streaming
+- **No financial advice**: Outputs are experimental; the system carries no guarantees of profitability
+- **No multi-asset**: Equities only for MVP; no crypto, forex, options, or commodities
+- **No paid data feeds**: MVP uses free data sources only (yfinance, free news APIs)
+
+## Technical Notes
+
+- **Language:** Python 3.11+
+- **Database:** SQLite (local, file-based; no external DB dependency)
+- **ML:** scikit-learn (LogisticRegression baseline); future stories may add XGBoost
+- **Data sources:** yfinance (OHLCV + fundamentals), free news/RSS for sentiment
+- **Scheduling:** GitHub Actions cron for MVP; can migrate to APScheduler or Celery later
+- **Testing:** pytest with mocked external APIs; no live API calls in tests

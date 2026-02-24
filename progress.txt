@@ -1,23 +1,15 @@
 # Progress Log
 
 ## Learnings
+(Notes discovered during implementation)
 
 ## Decisions
-- Packaging: pyproject.toml with src/ layout (no requirements.txt or setup.cfg)
-- DB: SQLite via stdlib sqlite3 for MVP (no SQLAlchemy)
-- Config: pydantic-settings for env var loading with typed defaults
-- Logging: stdlib logging only, no external deps
-- Layout: new code under src/smaps/; legacy src/*.py files left untouched
-- Phase 0 complete (US-0001..US-0005). US-0006 deferred.
-- Chose lightweight code-driven schema versioning (schema_migrations table) instead of Alembic for MVP.
-- US-0006 complete. Full Phase 0 done.
+- PRD rewritten from scratch with expanded scope: price + sentiment + fundamentals data sources
+- Story IDs reset to US-001..US-703 (no phase prefix in Phase 0, phase-prefixed from Phase 1 onward)
+- ML retraining is core to the system (Phase 5), not optional
 
 ## Integration Notes
-- `pip install -e .` installs the smaps package in editable mode
-- `python -m pytest -q` runs all tests from repo root
-- `python -c "import smaps; print('ok')"` verifies package importability
-- SQLite DB created on-demand at path from SMAPS_DB_PATH (default: data/smaps.sqlite)
-- Single source of truth verification: scripts/verify_scaffold.sh + CI scaffold_verify.yml
+(Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-0101: Define canonical data model for OHLCV daily bars (Phase 1 begins).
+- US-001: Create project skeleton (Phase 0 begins)
