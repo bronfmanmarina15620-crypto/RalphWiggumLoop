@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-004: Add structured logging with run_id
+- US-005: Add SQLite database layer with schema migrations
 
 ---
 
@@ -55,4 +55,18 @@
   - Many Phase 0 stories were pre-built during scaffold but lacked tests for all acceptance criteria
   - pydantic-settings BaseSettings with env_prefix handles env var parsing including JSON lists
   - monkeypatch.setenv is the clean way to test env var overrides in pytest
+---
+
+## Iteration 4 — US-004: Add structured logging with run_id
+- What was done:
+  - src/smaps/logging.py already existed with get_logger(name, run_id=None)
+  - Format already included ISO timestamp (%Y-%m-%dT%H:%M:%S), level, name, and run_id
+  - Existing test_get_logger verified name but not isinstance; added isinstance(logger, logging.Logger) checks
+  - Added test_get_logger_output_format that captures stderr and verifies ISO timestamp, level, name, run_id, and message are all present in output
+  - Verified: make test (11 passed), make typecheck (success)
+- Files affected: tests/test_smoke.py, PRD.md, progress.txt
+- Learnings for next cycles:
+  - logging.StreamHandler writes to stderr by default; use capfd to capture it
+  - Use unique logger names in tests to avoid handler reuse from Python's global logger registry
+  - Phase 0 modules were pre-built but needed AC-level test coverage to be marked complete
 ---

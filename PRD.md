@@ -54,10 +54,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want structured logs so that each pipeline run is traceable.
 
 **Acceptance Criteria:**
-- [ ] `src/smaps/logging.py` exports `get_logger(name, run_id=None)`
-- [ ] Output includes ISO timestamp, level, name, and run_id
-- [ ] Unit test verifies logger returns `logging.Logger`
-- [ ] Typecheck passes
+- [x] `src/smaps/logging.py` exports `get_logger(name, run_id=None)`
+- [x] Output includes ISO timestamp, level, name, and run_id
+- [x] Unit test verifies logger returns `logging.Logger`
+- [x] Typecheck passes
 
 ### US-005: Add SQLite database layer with schema migrations
 **Description:** As a developer, I want a local DB with versioned migrations so that schema evolves safely.

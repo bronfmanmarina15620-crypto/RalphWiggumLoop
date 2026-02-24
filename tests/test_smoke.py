@@ -36,14 +36,37 @@ def test_config_env_overrides(monkeypatch):
 
 
 def test_get_logger():
-    """get_logger returns a usable logger."""
+    """get_logger returns a logging.Logger with correct name."""
+    import logging
+
     from smaps.logging import get_logger
 
     logger = get_logger("test_smoke")
+    assert isinstance(logger, logging.Logger)
     assert logger.name == "test_smoke"
 
     logger_with_run = get_logger("test_run", run_id="abc123")
+    assert isinstance(logger_with_run, logging.Logger)
     assert logger_with_run.name == "test_run"
+
+
+def test_get_logger_output_format(capfd):
+    """Logger output includes ISO timestamp, level, name, and run_id."""
+    import logging
+
+    from smaps.logging import get_logger
+
+    # Use unique names to avoid handler reuse from previous tests
+    logger = get_logger("fmt_test_run", run_id="RUN42")
+    logger.setLevel(logging.INFO)
+    logger.info("hello")
+    captured = capfd.readouterr()
+    # ISO timestamp like 2025-01-15T10:30:00
+    assert "T" in captured.err  # ISO date separator
+    assert "INFO" in captured.err
+    assert "fmt_test_run" in captured.err
+    assert "RUN42" in captured.err
+    assert "hello" in captured.err
 
 
 def test_ensure_schema():
