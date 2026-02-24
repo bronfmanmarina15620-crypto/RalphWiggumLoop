@@ -17,8 +17,7 @@ def migration_001_initial(conn: sqlite3.Connection) -> None:
             high      REAL,
             low       REAL,
             close     REAL,
-            adj_close REAL,
-            volume    REAL,
+            volume    INTEGER,
             PRIMARY KEY (ticker, date)
         )
         """

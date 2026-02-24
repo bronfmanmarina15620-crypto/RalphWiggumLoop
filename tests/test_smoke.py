@@ -122,7 +122,7 @@ def test_ensure_schema_columns():
 
     cur = conn.execute("PRAGMA table_info(ohlcv_daily)")
     columns = {row[1] for row in cur.fetchall()}
-    expected = {"ticker", "date", "open", "high", "low", "close", "adj_close", "volume"}
+    expected = {"ticker", "date", "open", "high", "low", "close", "volume"}
     assert expected == columns
 
     conn.close()

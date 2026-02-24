@@ -5,6 +5,7 @@ from __future__ import annotations
 import sqlite3
 
 from smaps.migrations import MIGRATIONS
+from smaps.models import OHLCVBar
 
 SCHEMA_VERSION = 1
 
@@ -59,3 +60,22 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
         )
     migrate(conn)
     set_schema_version(conn, SCHEMA_VERSION)
+
+
+def upsert_bars(conn: sqlite3.Connection, bars: list[OHLCVBar]) -> int:
+    """Persist OHLCV bars with INSERT OR REPLACE (idempotent upsert).
+
+    Returns the number of rows upserted.
+    """
+    conn.executemany(
+        """\
+        INSERT OR REPLACE INTO ohlcv_daily (ticker, date, open, high, low, close, volume)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            (b.ticker, b.date.isoformat(), b.open, b.high, b.low, b.close, b.volume)
+            for b in bars
+        ],
+    )
+    conn.commit()
+    return len(bars)

@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-103: Add OHLCV table and idempotent upsert
+- US-104: Implement sentiment data collector
 
 ---
 
@@ -133,4 +133,24 @@
   - yfinance.download() end date is exclusive; add +1 day timedelta for inclusive end
   - Use @patch("smaps.collectors.price.yf.download") to mock at the module level where it's imported
   - DataFrame.iterrows() yields (Timestamp, Series) tuples; call .date() on timestamp for datetime.date
+---
+
+## Iteration 8 — US-103: Add OHLCV table and idempotent upsert
+- What was done:
+  - Updated migration_001 in migrations.py: removed `adj_close` column (not in OHLCVBar model since auto_adjust=True), changed volume from REAL to INTEGER to match OHLCVBar.volume (int)
+  - Added `upsert_bars(conn, bars) -> int` function to db.py using INSERT OR REPLACE
+  - Stores date as ISO text (YYYY-MM-DD) for SQLite compatibility
+  - Created tests/test_ohlcv_persistence.py with 4 tests:
+    - test_upsert_inserts_bar: verifies single bar round-trip
+    - test_upsert_same_row_twice_yields_single_row: core AC — same PK twice → 1 row, second value wins
+    - test_upsert_multiple_bars: verifies batch insert of 3 bars
+    - test_upsert_empty_list: edge case — empty list succeeds
+  - Fixed existing column-check tests in test_smoke.py and test_migrations.py to remove adj_close
+  - Verified: make test (26 passed), make typecheck (success)
+- Files affected: src/smaps/migrations.py, src/smaps/db.py, tests/test_ohlcv_persistence.py (new), tests/test_smoke.py, tests/test_migrations.py, PRD.md, progress.txt
+- Learnings for next cycles:
+  - Original scaffold migration_001 had adj_close from pre-PRD era; safe to modify since no production DB exists
+  - INSERT OR REPLACE on composite PK (ticker, date) is the idiomatic SQLite upsert for this pattern
+  - Store datetime.date as ISO string via .isoformat() — SQLite has no native date type
+  - executemany() is efficient for batch inserts; commit once after the batch
 ---

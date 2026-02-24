@@ -95,10 +95,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want price bars persisted so that features can be computed offline.
 
 **Acceptance Criteria:**
-- [ ] Migration adds `ohlcv_daily` table: ticker, date, open, high, low, close, volume; PK (ticker, date)
-- [ ] `INSERT OR REPLACE` upsert avoids duplicates
-- [ ] Unit test: insert same row twice → single row in DB
-- [ ] Typecheck passes
+- [x] Migration adds `ohlcv_daily` table: ticker, date, open, high, low, close, volume; PK (ticker, date)
+- [x] `INSERT OR REPLACE` upsert avoids duplicates
+- [x] Unit test: insert same row twice → single row in DB
+- [x] Typecheck passes
 
 ### US-104: Implement sentiment data collector
 **Description:** As a developer, I want to ingest daily sentiment scores so that predictions include market mood.
