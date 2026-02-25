@@ -228,11 +228,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want a trainable model so that the system can make predictions.
 
 **Acceptance Criteria:**
-- [ ] `src/smaps/model/trainer.py` exports `train_model(features_df, labels) -> TrainedModel`
-- [ ] Uses time-based train/test split (no shuffle)
-- [ ] Default: LogisticRegression with StandardScaler
-- [ ] Unit test: train on synthetic data, verify model produces predictions
-- [ ] Typecheck passes
+- [x] `src/smaps/model/trainer.py` exports `train_model(features_df, labels) -> TrainedModel`
+- [x] Uses time-based train/test split (no shuffle)
+- [x] Default: LogisticRegression with StandardScaler
+- [x] Unit test: train on synthetic data, verify model produces predictions
+- [x] Typecheck passes
 
 ### US-303: Persist model artifacts with versioning
 **Description:** As a developer, I want models saved and versioned so that I can track which model made which prediction.

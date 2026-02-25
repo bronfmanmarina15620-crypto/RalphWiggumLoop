@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-302: Train baseline model (Logistic Regression)
+- US-303: Persist model artifacts with versioning
 
 ---
 
@@ -467,4 +467,37 @@
   - model_version is str (e.g., "v1") — will be used by model registry in US-303
   - First Phase 3 file — PredictionResult will be used by trainer (US-302), predictor (US-304), and persistence (US-305)
   - US-302 (train baseline model) is next — will use PredictionResult as the output type for predictions
+---
+
+## Iteration 22 — US-302: Train baseline model (Logistic Regression)
+- What was done:
+  - Created src/smaps/model/ package with __init__.py
+  - Created src/smaps/model/trainer.py with TrainedModel dataclass and train_model() function
+  - TrainedModel wraps sklearn Pipeline and provides predict(features) -> (Direction, confidence) method
+  - train_model(features_df, labels, test_ratio) uses time-based split (no shuffle) — first 80% train, last 20% test
+  - Pipeline: StandardScaler → LogisticRegression (random_state=42, max_iter=1000)
+  - NaN handling: fillna(0.0) for both training data and prediction input
+  - predict() uses predict_proba to get class probabilities; maps to Direction.UP/DOWN with confidence
+  - Metrics dict includes accuracy, train_size, test_size from test split
+  - Added scikit-learn>=1.3 to pyproject.toml dependencies
+  - Added [[tool.mypy.overrides]] for sklearn.* (no py.typed marker)
+  - Created tests/test_model_trainer.py with 9 tests:
+    - test_returns_trained_model: verifies TrainedModel return type
+    - test_model_produces_predictions: verifies Direction and confidence output
+    - test_time_based_split_no_shuffle: verifies 80/20 split sizes
+    - test_metrics_include_accuracy: verifies accuracy metric in range
+    - test_feature_names_preserved: verifies column names propagated
+    - test_handles_nan_in_training_data: NaN in features → still trains
+    - test_handles_nan_in_prediction: NaN in prediction input → still predicts
+    - test_uses_logistic_regression: verifies pipeline uses LogisticRegression
+    - test_uses_standard_scaler: verifies pipeline uses StandardScaler
+  - Verified: make test (124 passed), make typecheck (success)
+- Files affected: src/smaps/model/__init__.py (new), src/smaps/model/trainer.py (new), tests/test_model_trainer.py (new), pyproject.toml, PRD.md, progress.txt
+- Learnings for next cycles:
+  - sklearn has no py.typed marker; need mypy overrides with ignore_missing_imports = true
+  - TrainedModel.predict uses pipeline.classes_ to find the index of class 1 (UP) in predict_proba output
+  - Edge case: if model only sees one class during training, classes_ may have only one entry
+  - fillna(0.0) is a simple but effective strategy for NaN features in LogisticRegression
+  - Time-based split uses simple iloc slicing: [:split_idx] for train, [split_idx:] for test — no shuffle
+  - US-303 (persist model artifacts) is next — will use joblib to serialize TrainedModel.pipeline
 ---
