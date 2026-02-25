@@ -238,12 +238,24 @@ def retrain(
         feature_rows.append(features)
         labels.append(label)
 
-    # 4. Train the model
+    # 4. Warn if training samples are less than 90% of available data
+    available = len(dates) - 1
+    if available > 0 and len(feature_rows) < 0.9 * available:
+        logger.warning(
+            "data_utilization_gap ticker=%s samples=%d available=%d "
+            "ratio=%.2f",
+            ticker,
+            len(feature_rows),
+            available,
+            len(feature_rows) / available,
+        )
+
+    # 5. Train the model
     features_df = pd.DataFrame(feature_rows)
     labels_series = pd.Series(labels)
     model: TrainedModel = train_model(features_df, labels_series)
 
-    # 5. Save with incremented version
+    # 6. Save with incremented version
     record = save_model(conn, ticker, model, models_dir=models_dir)
 
     elapsed = time.monotonic() - t0
@@ -330,7 +342,19 @@ def retrain_with_validation(
         feature_rows.append(features)
         labels.append(label)
 
-    # 4. Train the new model
+    # 4. Warn if training samples are less than 90% of available data
+    available = len(dates) - 1
+    if available > 0 and len(feature_rows) < 0.9 * available:
+        logger.warning(
+            "data_utilization_gap ticker=%s samples=%d available=%d "
+            "ratio=%.2f",
+            ticker,
+            len(feature_rows),
+            available,
+            len(feature_rows) / available,
+        )
+
+    # 5. Train the new model
     features_df = pd.DataFrame(feature_rows)
     labels_series = pd.Series(labels)
     new_model: TrainedModel = train_model(features_df, labels_series)

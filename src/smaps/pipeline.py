@@ -32,7 +32,7 @@ def run_pipeline(
     date: datetime.date,
     db_path: str = ":memory:",
     models_dir: str = "models",
-    lookback_days: int = 90,
+    lookback_days: int = 180,
 ) -> dict[str, object]:
     """Run the full daily pipeline: ingest → predict → evaluate → retrain-if-needed.
 

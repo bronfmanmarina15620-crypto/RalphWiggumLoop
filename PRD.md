@@ -414,6 +414,59 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 
 ---
 
+### Phase 8 — Dashboard Enhancements & Model Visibility
+
+### US-801: Localize dashboard to Hebrew (RTL)
+**Description:** As a user, I want the dashboard in Hebrew so that it matches my primary language.
+
+**Acceptance Criteria:**
+- [x] HTML root set to `lang="he" dir="rtl"`
+- [x] All UI labels, headings, and descriptions in Hebrew
+- [x] Layout renders correctly in RTL (margins, alignment, chart direction)
+- [x] Typecheck passes
+- [x] Verify changes work in browser
+
+### US-802: Anchor performance window to latest prediction date
+**Description:** As a user, I want accuracy metrics anchored to the latest prediction date so that the performance window is meaningful even when viewing historical data.
+
+**Acceptance Criteria:**
+- [x] `/performance` endpoint uses each ticker's most recent prediction date as window anchor
+- [x] Falls back to today if no predictions exist
+- [x] Unit test verifies anchored window behavior
+- [x] Typecheck passes
+
+### US-803: Add model registry endpoint
+**Description:** As a user, I want an API endpoint listing all trained models so that I can inspect model versions and their metrics.
+
+**Acceptance Criteria:**
+- [x] `GET /models` returns JSON array of all model versions
+- [x] Each entry includes: ticker, version, trained_at, accuracy, train_size, test_size, artifact_path
+- [x] Filterable by `?ticker=AAPL`
+- [x] Typecheck passes
+- [x] Verify changes work in browser
+
+### US-804: Add models tab to dashboard
+**Description:** As a user, I want a models tab in the dashboard so that I can see all trained models and their training metrics at a glance.
+
+**Acceptance Criteria:**
+- [x] Tab-based navigation between "Overview" and "Models" tabs
+- [x] Models tab lists all versions per ticker with training metrics
+- [x] Active model marked with green badge, previous versions with gray badge
+- [x] Info box explaining the model details (algorithm, version, accuracy, train/test sizes)
+- [x] Typecheck passes
+- [x] Verify changes work in browser
+
+### US-805: Fix training data utilization gap
+**Description:** As a developer, I want all tickers to train on all available historical data so that no data is wasted due to ingestion timing.
+
+**Acceptance Criteria:**
+- [x] Retrain uses all OHLCV dates in the database (verified by comparing train_size + test_size to available trading days - 1)
+- [x] AAPL retrained with full ~114 samples instead of 59
+- [x] Log emitted if training sample count is less than 90% of available data
+- [x] Typecheck passes
+
+---
+
 ## Non-Goals
 
 - **No live trading**: The system predicts direction only; it does not place orders or manage a portfolio

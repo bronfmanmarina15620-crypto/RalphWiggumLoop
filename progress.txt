@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- All stories complete!
+- Phase 8 complete (US-801 through US-805)
 
 ---
 
@@ -941,4 +941,46 @@
   - model_registry.trained_at stores ISO datetime strings; MAX() on ISO strings gives the chronologically latest value (lexicographic sort works for ISO format)
   - _make_client() helper in tests encapsulates the _get_conn patching pattern — cleaner than repeating the full fixture pattern
   - All PRD stories (US-001 through US-703) are now complete
+---
+
+## Iteration 40 — US-801 & US-802: Hebrew dashboard + anchored performance window
+- What was done:
+  - (Completed in previous session)
+  - US-801: Localized dashboard to Hebrew (RTL) — lang="he" dir="rtl", all labels/headings in Hebrew
+  - US-802: Anchored performance window to latest prediction date per ticker
+  - Committed as 9025cc9
+- Files affected: src/smaps/api.py, PRD.md
+
+## Iteration 41 — US-803: Add model registry endpoint
+- What was done:
+  - Added `GET /models` endpoint to src/smaps/api.py returning JSON array of all model versions
+  - Each entry includes: ticker, version, trained_at, accuracy, train_size, test_size, artifact
+  - Added `?ticker=` query parameter for filtering by ticker
+  - Added 6 tests in TestModelsEndpoint class: returns_list, entry_fields, ordered_by_ticker_then_version_desc, filter_by_ticker, filter_unknown_ticker_returns_empty, empty_db_returns_empty_list
+  - Updated test_contains_title to match Hebrew title ("לוח בקרה" instead of "SMAPS Dashboard")
+  - Verified: make test (324 passed), make typecheck (success, 25 source files)
+- Files affected: src/smaps/api.py, tests/test_api_dashboard.py, PRD.md
+
+## Iteration 42 — US-804: Add models tab to dashboard
+- What was done:
+  - Added tab-based navigation (סקירה כללית / מודלים) to dashboard HTML
+  - Models tab lists all versions per ticker with training metrics
+  - Active model marked with green badge (פעיל), previous versions with gray badge (קודם)
+  - Info box explaining model details (Logistic Regression algorithm, version, accuracy, train/test sizes)
+  - JS renderModels() groups by ticker, shows version, accuracy, train/test sizes, date, artifact path
+  - Added 3 tests in TestDashboardModelsTab class: contains_models_tab, contains_models_list_container, fetches_models_endpoint
+  - Verified: make test (324 passed), make typecheck (success, 25 source files)
+- Files affected: src/smaps/api.py, tests/test_api_dashboard.py, PRD.md
+
+## Iteration 43 — US-805: Fix training data utilization gap
+- What was done:
+  - Increased `lookback_days` default from 90 to 180 in run_pipeline() — ingests ~6 months of OHLCV data (~114 trading days) instead of ~3 months (~59)
+  - Added data_utilization_gap WARNING log in both retrain() and retrain_with_validation() — fires when training samples < 90% of available trading days minus 1
+  - Added test_no_utilization_gap_warning_when_all_data_used to TestRetrainLogging
+  - Verified: make test (325 passed), make typecheck (success, 25 source files)
+- Files affected: src/smaps/pipeline.py, src/smaps/retrainer.py, tests/test_retrain.py, PRD.md, progress.txt
+- Learnings for next cycles:
+  - 90 calendar days ≈ 59 trading days; 180 calendar days ≈ 114 trading days
+  - data_utilization_gap log uses ratio format for quick visibility (samples/available)
+  - Phase 8 (US-801 through US-805) is now complete
 ---

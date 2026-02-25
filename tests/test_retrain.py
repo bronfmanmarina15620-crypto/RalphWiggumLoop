@@ -207,3 +207,15 @@ class TestRetrainLogging:
         assert any("retrain_complete" in msg for msg in caplog.messages)
         assert any("version=" in msg for msg in caplog.messages)
         assert any("accuracy=" in msg for msg in caplog.messages)
+
+    def test_no_utilization_gap_warning_when_all_data_used(
+        self, tmp_path, caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """retrain() should NOT log data_utilization_gap when all data is used."""
+        conn = _setup_db()
+        _insert_price_history(conn, days=10)
+
+        with caplog.at_level(logging.WARNING, logger="smaps.retrainer"):
+            retrain(conn, "AAPL", models_dir=str(tmp_path / "models"))
+
+        assert not any("data_utilization_gap" in msg for msg in caplog.messages)

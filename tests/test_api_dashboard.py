@@ -102,7 +102,7 @@ class TestDashboardEndpoint:
         with _make_client(empty_db_path):
             client = TestClient(app)
             resp = client.get("/dashboard")
-        assert "SMAPS Dashboard" in resp.text
+        assert "SMAPS" in resp.text and "לוח בקרה" in resp.text
 
     def test_contains_predictions_section(self, empty_db_path):
         with _make_client(empty_db_path):
@@ -130,6 +130,83 @@ class TestDashboardEndpoint:
         assert "/predictions/latest" in resp.text
         assert "/performance" in resp.text
         assert "/retrain-info" in resp.text
+
+
+class TestModelsEndpoint:
+    """Tests for GET /models."""
+
+    def test_returns_list(self, populated_db_path):
+        with _make_client(populated_db_path):
+            client = TestClient(app)
+            resp = client.get("/models")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, list)
+        assert len(data) == 3  # AAPL v1, AAPL v2, MSFT v1
+
+    def test_entry_fields(self, populated_db_path):
+        with _make_client(populated_db_path):
+            client = TestClient(app)
+            resp = client.get("/models")
+        entry = resp.json()[0]
+        for key in ("ticker", "version", "trained_at", "accuracy", "train_size", "test_size", "artifact"):
+            assert key in entry
+
+    def test_ordered_by_ticker_then_version_desc(self, populated_db_path):
+        with _make_client(populated_db_path):
+            client = TestClient(app)
+            resp = client.get("/models")
+        data = resp.json()
+        # AAPL comes first, highest version first
+        assert data[0]["ticker"] == "AAPL"
+        assert data[0]["version"] == 2
+        assert data[1]["ticker"] == "AAPL"
+        assert data[1]["version"] == 1
+        assert data[2]["ticker"] == "MSFT"
+
+    def test_filter_by_ticker(self, populated_db_path):
+        with _make_client(populated_db_path):
+            client = TestClient(app)
+            resp = client.get("/models?ticker=MSFT")
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["ticker"] == "MSFT"
+
+    def test_filter_unknown_ticker_returns_empty(self, populated_db_path):
+        with _make_client(populated_db_path):
+            client = TestClient(app)
+            resp = client.get("/models?ticker=NOPE")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_empty_db_returns_empty_list(self, empty_db_path):
+        with _make_client(empty_db_path):
+            client = TestClient(app)
+            resp = client.get("/models")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+
+class TestDashboardModelsTab:
+    """Tests for the models tab in the dashboard."""
+
+    def test_contains_models_tab(self, empty_db_path):
+        with _make_client(empty_db_path):
+            client = TestClient(app)
+            resp = client.get("/dashboard")
+        assert 'data-tab="models"' in resp.text
+
+    def test_contains_models_list_container(self, empty_db_path):
+        with _make_client(empty_db_path):
+            client = TestClient(app)
+            resp = client.get("/dashboard")
+        assert 'id="models-list"' in resp.text
+
+    def test_fetches_models_endpoint(self, empty_db_path):
+        with _make_client(empty_db_path):
+            client = TestClient(app)
+            resp = client.get("/dashboard")
+        assert "/models" in resp.text
 
 
 class TestRetrainInfoEndpoint:
