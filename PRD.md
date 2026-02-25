@@ -341,11 +341,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want drift alerts so that the system knows when its inputs are changing.
 
 **Acceptance Criteria:**
-- [ ] KS-test on each feature: training distribution vs recent 30-day window
-- [ ] Alert logged if p-value < 0.05
-- [ ] Drift report persisted to `reports/drift_<date>.json`
-- [ ] Unit test with shifted distribution verifies detection
-- [ ] Typecheck passes
+- [x] KS-test on each feature: training distribution vs recent 30-day window
+- [x] Alert logged if p-value < 0.05
+- [x] Drift report persisted to `reports/drift_<date>.json`
+- [x] Unit test with shifted distribution verifies detection
+- [x] Typecheck passes
 
 ---
 

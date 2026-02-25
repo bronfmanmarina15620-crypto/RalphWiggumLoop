@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-505: Add feature drift detection
+- US-601: Implement daily pipeline orchestrator
 
 ---
 
@@ -757,4 +757,33 @@
   - No new artifact file is created on rollback since save_model() is never called — verifiable by comparing directory contents before/after
   - The retrain_with_validation function duplicates retrain()'s data prep logic rather than calling retrain() because retrain() always saves — refactoring to share could be a future improvement
   - US-505 (feature drift detection) is next — will add KS-test based drift detection
+---
+
+## Iteration 33 — US-505: Add feature drift detection
+- What was done:
+  - Added `detect_drift(conn, ticker, window_days, p_threshold, as_of_date, reports_dir) -> dict` to src/smaps/retrainer.py
+  - Uses scipy.stats.ks_2samp (two-sample Kolmogorov-Smirnov test) to compare training distribution vs recent window
+  - Training distribution = features from all dates before the recent window; recent = last window_days trading dates
+  - For each feature in FEATURE_KEYS, runs KS-test on non-NaN values from both distributions
+  - Logs WARNING for each feature with p-value < p_threshold (default 0.05) including feature name, KS statistic, and p-value
+  - Drift report persisted to `reports/drift_<date>.json` with full per-feature results
+  - Edge cases handled: insufficient data (skip), no training dates (skip), NaN-only features (skip with NaN stats)
+  - Added scipy>=1.11 to pyproject.toml dependencies
+  - Added [[tool.mypy.overrides]] for scipy.* (no py.typed marker)
+  - Imported FEATURE_KEYS from combined.py, json, Path, and ks_2samp into retrainer.py
+  - Created tests/test_drift_detection.py with 16 tests in 2 classes:
+    - TestDetectDrift (12 tests): returns_report_dict, no_drift_with_stable_distribution, drift_detected_with_shifted_distribution, ks_test_per_feature, insufficient_data_skips, no_training_dates_skips, report_persisted_to_file, report_creates_directory, as_of_date_defaults_to_today, ticker_isolation, custom_p_threshold, report_includes_metadata
+    - TestDetectDriftLogging (4 tests): logs_warning_on_drift, logs_info_no_drift, logs_info_on_skip, drift_alert_includes_feature_name
+  - Verified: make test (253 passed), make typecheck (success, 23 source files)
+- Files affected: src/smaps/retrainer.py, tests/test_drift_detection.py (new), pyproject.toml, PRD.md, progress.txt
+- Learnings for next cycles:
+  - scipy.stats.ks_2samp returns (statistic, p_value) tuple — low p-value means distributions are significantly different
+  - scipy has no py.typed marker; need mypy overrides with ignore_missing_imports = true
+  - Reusing _get_trading_dates() from retrainer.py keeps drift detection consistent with retrain data splitting
+  - dropna() is essential before KS-test — NaN values would cause the test to fail
+  - Shifted distribution test (prices 100→500) reliably triggers drift detection in return-based features
+  - p_threshold=1.0 is useful for testing "no drift" case since all p-values are ≤ 1.0
+  - p_threshold=0.0 ensures nothing is flagged as drifted (p-values are always ≥ 0)
+  - Phase 5 self-learning loop is now fully complete (US-501 through US-505); Phase 6 (orchestrator & scheduling) is next
+  - US-601 (implement daily pipeline orchestrator) is next
 ---

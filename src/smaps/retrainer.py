@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import datetime
+import json
 import sqlite3
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.stats import ks_2samp  # type: ignore[import-untyped]
 
 from smaps.evaluator import compute_metrics
-from smaps.features.combined import build_features
+from smaps.features.combined import FEATURE_KEYS, build_features
 from smaps.logging import get_logger
 from smaps.model.registry import ModelRecord, load_latest_model, save_model
 from smaps.model.trainer import TrainedModel, train_model
@@ -370,3 +373,157 @@ def retrain_with_validation(
         elapsed,
     )
     return None
+
+
+def detect_drift(
+    conn: sqlite3.Connection,
+    ticker: str,
+    window_days: int = 30,
+    p_threshold: float = 0.05,
+    as_of_date: datetime.date | None = None,
+    reports_dir: str = "reports",
+) -> dict[str, object]:
+    """Detect feature drift using the two-sample Kolmogorov–Smirnov test.
+
+    Compares the distribution of each feature in the training period
+    (all dates before the recent window) against the recent *window_days*
+    trading days.  If the KS-test p-value for any feature falls below
+    *p_threshold*, a WARNING log is emitted.
+
+    A drift report is persisted to ``reports/drift_<date>.json``.
+
+    Args:
+        conn: SQLite connection with schema already applied.
+        ticker: Stock ticker symbol.
+        window_days: Number of most-recent trading days for the recent window.
+        p_threshold: p-value below which drift is flagged.
+        as_of_date: Date to anchor the analysis (defaults to today).
+        reports_dir: Directory for drift report storage.
+
+    Returns:
+        A dict containing ``ticker``, ``as_of_date``, ``features`` (per-feature
+        results), and ``drifted_features`` (list of feature names with drift).
+    """
+    if as_of_date is None:
+        as_of_date = datetime.date.today()
+
+    # 1. Get all trading dates up to as_of_date
+    dates = _get_trading_dates(conn, ticker)
+    dates = [d for d in dates if d <= as_of_date]
+
+    if len(dates) <= window_days:
+        logger.info(
+            "drift_check ticker=%s result=skip reason=insufficient_data "
+            "trading_days=%d window_days=%d",
+            ticker,
+            len(dates),
+            window_days,
+        )
+        return {
+            "ticker": ticker,
+            "as_of_date": as_of_date.isoformat(),
+            "features": {},
+            "drifted_features": [],
+            "skipped": True,
+            "reason": "insufficient_data",
+        }
+
+    # 2. Split into training (older) and recent (last window_days) periods
+    recent_dates = dates[-window_days:]
+    training_dates = dates[:-window_days]
+
+    if len(training_dates) == 0:
+        logger.info(
+            "drift_check ticker=%s result=skip reason=no_training_dates "
+            "trading_days=%d window_days=%d",
+            ticker,
+            len(dates),
+            window_days,
+        )
+        return {
+            "ticker": ticker,
+            "as_of_date": as_of_date.isoformat(),
+            "features": {},
+            "drifted_features": [],
+            "skipped": True,
+            "reason": "no_training_dates",
+        }
+
+    # 3. Build features for both periods
+    training_features = [build_features(conn, ticker, dt) for dt in training_dates]
+    recent_features = [build_features(conn, ticker, dt) for dt in recent_dates]
+
+    training_df = pd.DataFrame(training_features)
+    recent_df = pd.DataFrame(recent_features)
+
+    # 4. KS-test on each feature
+    feature_results: dict[str, dict[str, float]] = {}
+    drifted: list[str] = []
+
+    for feature_name in sorted(FEATURE_KEYS):
+        train_vals = training_df[feature_name].dropna().values
+        recent_vals = recent_df[feature_name].dropna().values
+
+        if len(train_vals) < 2 or len(recent_vals) < 2:
+            feature_results[feature_name] = {
+                "statistic": float("nan"),
+                "p_value": float("nan"),
+                "drifted": 0.0,
+            }
+            continue
+
+        stat, p_value = ks_2samp(train_vals, recent_vals)
+        is_drifted = p_value < p_threshold
+
+        feature_results[feature_name] = {
+            "statistic": float(stat),
+            "p_value": float(p_value),
+            "drifted": 1.0 if is_drifted else 0.0,
+        }
+
+        if is_drifted:
+            drifted.append(feature_name)
+            logger.warning(
+                "drift_alert ticker=%s feature=%s ks_statistic=%.4f "
+                "p_value=%.6f threshold=%.4f",
+                ticker,
+                feature_name,
+                stat,
+                p_value,
+                p_threshold,
+            )
+
+    # 5. Build and persist the report
+    report: dict[str, object] = {
+        "ticker": ticker,
+        "as_of_date": as_of_date.isoformat(),
+        "window_days": window_days,
+        "p_threshold": p_threshold,
+        "training_samples": len(training_dates),
+        "recent_samples": len(recent_dates),
+        "features": feature_results,
+        "drifted_features": drifted,
+    }
+
+    report_path = Path(reports_dir)
+    report_path.mkdir(parents=True, exist_ok=True)
+    filepath = report_path / f"drift_{as_of_date.isoformat()}.json"
+    filepath.write_text(json.dumps(report, indent=2))
+
+    if drifted:
+        logger.warning(
+            "drift_check ticker=%s result=drift_detected "
+            "drifted_count=%d features=%s",
+            ticker,
+            len(drifted),
+            ",".join(drifted),
+        )
+    else:
+        logger.info(
+            "drift_check ticker=%s result=no_drift "
+            "features_checked=%d",
+            ticker,
+            len(feature_results),
+        )
+
+    return report
