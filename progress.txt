@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-603: Add CLI entry point
+- US-701: Add FastAPI endpoint for latest predictions
 
 ---
 
@@ -840,4 +840,27 @@
   - cancel-in-progress: false is correct for pipeline workflows (should not abort mid-run if another triggers)
   - The __main__ block uses Settings() for tickers/db_path, making the workflow configurable via GitHub Actions env vars (SMAPS_TICKERS, SMAPS_DB_PATH)
   - US-603 (CLI entry point with --tickers, --date, --dry-run, --help) is next — will extend the __main__ block with argparse
+---
+
+## Iteration 36 — US-603: Add CLI entry point
+- What was done:
+  - Added argparse-based CLI to src/smaps/pipeline.py via `main(argv)` function and `_build_parser()`
+  - Supports `--tickers AAPL,MSFT` (comma-separated, whitespace stripped), `--date 2025-01-15` (YYYY-MM-DD), `--dry-run`, and `--help`
+  - When no `--tickers` or `--date` given, defaults from Settings() and today's date are used
+  - `--dry-run` logs all pipeline steps per ticker without executing them via `_run_dry()` helper
+  - `if __name__ == "__main__"` block now calls `main()`, enabling `python -m smaps.pipeline` with full CLI support
+  - `import argparse` moved to module-level to satisfy mypy type annotation on `_build_parser()` return type
+  - Created tests/test_cli.py with 13 tests in 3 classes:
+    - TestBuildParser (5 tests): help exits zero, tickers parsed, date parsed, dry-run flag, defaults
+    - TestMain (5 tests): tickers+date args, tickers from args, defaults from settings, dry-run skips run_pipeline, whitespace stripped
+    - TestDryRun (3 tests): logs all steps per ticker, logs complete, logs tickers and date
+  - Verified: make test (280 passed), make typecheck (success, 24 source files)
+- Files affected: src/smaps/pipeline.py, tests/test_cli.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - When a function does a local import (`from smaps.config import Settings`), mock at the source (`smaps.config.Settings`) not at the consumer (`smaps.pipeline.Settings`) — the local import creates a fresh binding each call
+  - argparse return type annotation needs the module imported at module level for mypy — string forward refs like `"argparse.ArgumentParser"` don't resolve if the module isn't imported
+  - `main(argv: list[str] | None = None)` with `parser.parse_args(argv)` makes the CLI testable — pass a list in tests, None in __main__ for sys.argv
+  - `date.fromisoformat()` parses YYYY-MM-DD strings directly — no need for strptime format string
+  - Phase 6 orchestrator & scheduling is now fully complete (US-601 through US-603); Phase 7 (reporting & dashboard) is next
+  - US-701 (FastAPI endpoint for latest predictions) is next
 ---

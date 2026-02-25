@@ -374,10 +374,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want a CLI so that I can run the pipeline manually.
 
 **Acceptance Criteria:**
-- [ ] `python -m smaps.pipeline --tickers AAPL,MSFT --date 2025-01-15` runs full pipeline
-- [ ] `--dry-run` flag logs steps without executing
-- [ ] `--help` shows usage
-- [ ] Typecheck passes
+- [x] `python -m smaps.pipeline --tickers AAPL,MSFT --date 2025-01-15` runs full pipeline
+- [x] `--dry-run` flag logs steps without executing
+- [x] `--help` shows usage
+- [x] Typecheck passes
 
 ---
 

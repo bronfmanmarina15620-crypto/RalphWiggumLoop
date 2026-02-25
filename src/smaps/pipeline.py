@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import datetime
 import logging
 import sqlite3
@@ -206,15 +207,79 @@ def _evaluate_pending(conn: sqlite3.Connection, ticker: str) -> int:
     return evaluated
 
 
-if __name__ == "__main__":
-    import datetime as _dt
+def _build_parser() -> argparse.ArgumentParser:
+    """Build the CLI argument parser."""
+    parser = argparse.ArgumentParser(
+        prog="smaps.pipeline",
+        description="Run the SMAPS daily pipeline: ingest → predict → evaluate → retrain.",
+    )
+    parser.add_argument(
+        "--tickers",
+        type=str,
+        default=None,
+        help="Comma-separated ticker symbols (e.g. AAPL,MSFT). "
+        "Defaults to SMAPS_TICKERS env var or config default.",
+    )
+    parser.add_argument(
+        "--date",
+        type=str,
+        default=None,
+        help="Pipeline date in YYYY-MM-DD format (e.g. 2025-01-15). "
+        "Defaults to today.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="Log pipeline steps without executing them.",
+    )
+    return parser
 
+
+def _run_dry(tickers: list[str], date: datetime.date) -> None:
+    """Log pipeline steps without executing them."""
+    logger = get_logger("smaps.pipeline", run_id="dry-run")
+    logger.info(
+        "dry_run tickers=%s date=%s",
+        ",".join(tickers),
+        date.isoformat(),
+    )
+    for ticker in tickers:
+        for step in ("ingest", "predict", "evaluate", "retrain"):
+            logger.info("dry_run step=%s ticker=%s — skipped", step, ticker)
+    logger.info("dry_run complete — no changes made")
+
+
+def main(argv: list[str] | None = None) -> None:
+    """CLI entry point for ``python -m smaps.pipeline``."""
     from smaps.config import Settings
 
-    _settings = Settings()
-    _date = _dt.date.today()
-    run_pipeline(
-        tickers=_settings.tickers,
-        date=_date,
-        db_path=_settings.db_path,
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    settings = Settings()
+
+    tickers = (
+        [t.strip() for t in args.tickers.split(",") if t.strip()]
+        if args.tickers
+        else settings.tickers
     )
+
+    if args.date:
+        pipeline_date = datetime.date.fromisoformat(args.date)
+    else:
+        pipeline_date = datetime.date.today()
+
+    if args.dry_run:
+        _run_dry(tickers, pipeline_date)
+        return
+
+    run_pipeline(
+        tickers=tickers,
+        date=pipeline_date,
+        db_path=settings.db_path,
+    )
+
+
+if __name__ == "__main__":
+    main()
