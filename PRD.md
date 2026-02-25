@@ -248,10 +248,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want one function that takes a ticker and date and returns a prediction.
 
 **Acceptance Criteria:**
-- [ ] `predict(ticker, date) -> PredictionResult` loads model, builds features, returns prediction
-- [ ] Falls back to error if no trained model exists
-- [ ] Unit test with mock model verifies output schema
-- [ ] Typecheck passes
+- [x] `predict(ticker, date) -> PredictionResult` loads model, builds features, returns prediction
+- [x] Falls back to error if no trained model exists
+- [x] Unit test with mock model verifies output schema
+- [x] Typecheck passes
 
 ### US-305: Persist predictions to database
 **Description:** As a developer, I want predictions stored so that evaluation can match them to outcomes.

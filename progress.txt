@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-304: Implement daily prediction function
+- US-305: Persist predictions to database
 
 ---
 
@@ -530,4 +530,31 @@
   - trained_at stored as UTC ISO datetime via datetime.now(tz=datetime.timezone.utc)
   - cursor.lastrowid gives AUTOINCREMENT id after INSERT (same pattern as feature_snapshots)
   - US-304 (implement daily prediction function) is next — will use load_latest_model + build_features → PredictionResult
+---
+
+## Iteration 24 — US-304: Implement daily prediction function
+- What was done:
+  - Created src/smaps/model/predictor.py with `predict(conn, ticker, date) -> PredictionResult`
+  - Loads latest model via load_latest_model(); raises RuntimeError if no model exists for ticker
+  - Builds features via build_features(conn, ticker, date)
+  - Calls model.predict(features) to get (Direction, confidence)
+  - Returns PredictionResult with ticker, prediction_date, direction, confidence, model_version (f"v{record.version}")
+  - Created tests/test_predictor.py with 8 tests:
+    - test_returns_prediction_result: verifies PredictionResult return type
+    - test_output_schema: verifies all fields (ticker, prediction_date, direction, confidence, model_version)
+    - test_direction_is_up_or_down: verifies Direction enum membership
+    - test_model_version_from_registry: verifies v2 when two models saved
+    - test_raises_when_no_model: RuntimeError with no model
+    - test_raises_for_unknown_ticker: RuntimeError for different ticker
+    - test_uses_build_features: verifies build_features called with correct args via mock
+    - test_with_mock_model: fully mocked model verifies output schema end-to-end
+  - Verified: make test (146 passed), make typecheck (success)
+- Files affected: src/smaps/model/predictor.py (new), tests/test_predictor.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - predict() takes conn as first arg — consistent with build_features and all DB-accessing functions
+  - model_version string uses f"v{record.version}" to match the convention in ModelRecord (integer version)
+  - np.abs() is a module function, not a RandomState method — use np.abs(rng.randn(n)) not rng.abs()
+  - Fully mocked test (mock load_latest_model + build_features) is the cleanest way to verify output schema without real data
+  - Tests with real TrainedModel work because features default to NaN/0.0 when no OHLCV/sentiment/fundamental data in DB
+  - US-305 (persist predictions to database) is next — will need migration for predictions table
 ---
