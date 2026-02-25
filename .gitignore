@@ -10,3 +10,4 @@ data/
 .mypy_cache/
 .pytest_cache/
 models/
+reports/
