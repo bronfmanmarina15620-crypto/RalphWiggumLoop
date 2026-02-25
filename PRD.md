@@ -164,10 +164,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want price-derived features so that the model captures momentum and volatility patterns.
 
 **Acceptance Criteria:**
-- [ ] Computes: return_1d, return_5d, return_10d, MA(5)/MA(20) ratio, volume_change_1d, volatility_20d, RSI(14)
-- [ ] Uses only bars dated <= as_of_date (no leakage)
-- [ ] Unit test with synthetic data verifies output keys and shape
-- [ ] Typecheck passes
+- [x] Computes: return_1d, return_5d, return_10d, MA(5)/MA(20) ratio, volume_change_1d, volatility_20d, RSI(14)
+- [x] Uses only bars dated <= as_of_date (no leakage)
+- [x] Unit test with synthetic data verifies output keys and shape
+- [x] Typecheck passes
 
 ### US-203: Implement sentiment features
 **Description:** As a developer, I want sentiment-derived features so that the model captures market mood.

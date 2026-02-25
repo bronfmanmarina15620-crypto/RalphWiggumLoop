@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-202: Implement technical indicator features
+- US-203: Implement sentiment features
 
 ---
 
@@ -285,4 +285,35 @@
   - FeaturePipeline is the base interface for US-202 (technical), US-203 (sentiment), US-204 (fundamental) features
   - First Phase 2 file — features/ package will be the home for all feature engineering code
   - Next stories (US-202..US-204) will create concrete implementations of this protocol
+---
+
+## Iteration 15 — US-202: Implement technical indicator features
+- What was done:
+  - Created src/smaps/features/technical.py with TechnicalFeatures class implementing FeaturePipeline protocol
+  - Takes sqlite3.Connection in constructor; queries ohlcv_daily table filtered by date <= as_of_date
+  - Computes 7 features: return_1d, return_5d, return_10d, ma_ratio_5_20, volume_change_1d, volatility_20d, rsi_14
+  - All indicators return float('nan') when insufficient data is available
+  - RSI uses simple average gain/loss method (SMA-based RSI)
+  - No-leakage: SQL WHERE clause restricts to date <= as_of_date.isoformat()
+  - Created tests/test_features_technical.py with 11 tests:
+    - test_output_keys_and_shape: verifies all 7 keys returned as floats
+    - test_return_1d: verifies 1-day return calculation
+    - test_return_5d: verifies 5-day return calculation
+    - test_return_10d: verifies 10-day return calculation
+    - test_volume_change_1d: verifies volume change calculation
+    - test_rsi_all_gains: RSI = 100 when all changes positive
+    - test_rsi_all_losses: RSI = 0 when all changes negative
+    - test_ma_ratio_5_20: verifies MA(5)/MA(20) ratio
+    - test_no_leakage: future bars excluded by as_of_date filter
+    - test_insufficient_data_returns_nan: 1 bar → all NaN
+    - test_no_bars_returns_nan: unknown ticker → all NaN
+  - Verified: make test (71 passed), make typecheck (success)
+- Files affected: src/smaps/features/technical.py (new), tests/test_features_technical.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - float('nan') is a valid Python float; use math.isnan() to check in tests
+  - SQL date comparison works on ISO strings (YYYY-MM-DD) in SQLite for <= filtering
+  - TechnicalFeatures needs DB connection passed in constructor — same pattern will apply to SentimentFeatures and FundamentalFeatures
+  - _return_n() is reusable for both price returns and volume change (same formula)
+  - RSI edge cases: all gains → 100.0 (avg_loss=0 guard), all losses → 0.0 (natural from formula)
+  - volatility_20d uses sample stdev (N-1 denominator) of daily returns over last 20 bars
 ---
