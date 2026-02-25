@@ -332,10 +332,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want automatic rollback so that a bad retrain doesn't degrade the system.
 
 **Acceptance Criteria:**
-- [ ] If new model fails OOS gate, previous model version remains active
-- [ ] Rollback event logged with reason and metrics
-- [ ] Unit test verifies rollback keeps previous model active
-- [ ] Typecheck passes
+- [x] If new model fails OOS gate, previous model version remains active
+- [x] Rollback event logged with reason and metrics
+- [x] Unit test verifies rollback keeps previous model active
+- [x] Typecheck passes
 
 ### US-505: Add feature drift detection
 **Description:** As a developer, I want drift alerts so that the system knows when its inputs are changing.

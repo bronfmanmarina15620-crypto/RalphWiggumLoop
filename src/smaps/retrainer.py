@@ -12,7 +12,7 @@ import pandas as pd
 from smaps.evaluator import compute_metrics
 from smaps.features.combined import build_features
 from smaps.logging import get_logger
-from smaps.model.registry import ModelRecord, save_model
+from smaps.model.registry import ModelRecord, load_latest_model, save_model
 from smaps.model.trainer import TrainedModel, train_model
 
 logger = get_logger(__name__)
@@ -255,3 +255,118 @@ def retrain(
     )
 
     return record
+
+
+def retrain_with_validation(
+    conn: sqlite3.Connection,
+    ticker: str,
+    models_dir: str = "models",
+    oos_days: int = 30,
+) -> ModelRecord | None:
+    """Retrain the model for *ticker* with OOS validation and rollback.
+
+    Performs the full retrain cycle: builds features/labels from all
+    available historical data, trains a new model, then validates it
+    against the currently deployed model via the OOS gate.
+
+    - If the new model passes the OOS gate, it is saved and promoted.
+    - If the new model fails the OOS gate, it is **not** saved—the
+      previous model version remains active and a rollback event is logged.
+
+    Args:
+        conn: SQLite connection with schema already applied.
+        ticker: Stock ticker symbol.
+        models_dir: Directory for model artifact storage.
+        oos_days: Number of most-recent samples to hold out for OOS
+            validation.
+
+    Returns:
+        :class:`ModelRecord` for the new model if promoted, or ``None``
+        if the OOS gate blocked and a rollback occurred.
+
+    Raises:
+        ValueError: If insufficient data is available (need at least 2
+            trading days for features + labels).
+    """
+    t0 = time.monotonic()
+
+    # 1. Get all trading dates for this ticker
+    dates = _get_trading_dates(conn, ticker)
+    if len(dates) < 2:
+        raise ValueError(
+            f"Insufficient data for ticker '{ticker}': need at least 2 "
+            f"trading days, found {len(dates)}."
+        )
+
+    logger.info(
+        "retrain_start ticker=%s trading_days=%d date_range=%s..%s",
+        ticker,
+        len(dates),
+        dates[0].isoformat(),
+        dates[-1].isoformat(),
+    )
+
+    # 2. Build a close-price lookup for label computation
+    cur = conn.execute(
+        "SELECT date, close FROM ohlcv_daily WHERE ticker = ? ORDER BY date ASC",
+        (ticker,),
+    )
+    close_by_date = {row[0]: row[1] for row in cur.fetchall()}
+
+    # 3. Build features and labels for each date that has a next-day price
+    feature_rows: list[dict[str, float]] = []
+    labels: list[int] = []
+
+    for i, dt in enumerate(dates[:-1]):
+        next_dt = dates[i + 1]
+        close_today = close_by_date[dt.isoformat()]
+        close_next = close_by_date[next_dt.isoformat()]
+        label = 1 if close_next >= close_today else 0  # UP=1, DOWN=0
+
+        features = build_features(conn, ticker, dt)
+        feature_rows.append(features)
+        labels.append(label)
+
+    # 4. Train the new model
+    features_df = pd.DataFrame(feature_rows)
+    labels_series = pd.Series(labels)
+    new_model: TrainedModel = train_model(features_df, labels_series)
+
+    # 5. Load the current model for OOS comparison
+    current_result = load_latest_model(conn, ticker)
+    current_model = current_result[0] if current_result is not None else None
+
+    # 6. OOS validation gate
+    promoted, oos_metrics = validate_oos(
+        new_model, features_df, labels_series,
+        current_model=current_model, oos_days=oos_days,
+    )
+
+    elapsed = time.monotonic() - t0
+
+    if promoted:
+        # Save and promote the new model
+        record = save_model(conn, ticker, new_model, models_dir=models_dir)
+        logger.info(
+            "retrain_complete ticker=%s version=%d accuracy=%.4f "
+            "train_samples=%d elapsed=%.2fs",
+            ticker,
+            record.version,
+            new_model.metrics.get("accuracy", 0.0),
+            len(feature_rows),
+            elapsed,
+        )
+        return record
+
+    # 7. Rollback: do NOT save the new model; previous version stays active
+    logger.warning(
+        "rollback ticker=%s reason=oos_gate_failed "
+        "new_oos_accuracy=%.4f current_oos_accuracy=%.4f "
+        "oos_size=%d elapsed=%.2fs",
+        ticker,
+        oos_metrics.get("new_oos_accuracy", 0.0),
+        oos_metrics.get("current_oos_accuracy", 0.0),
+        int(oos_metrics.get("oos_size", 0)),
+        elapsed,
+    )
+    return None

@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-504: Add rollback on regression
+- US-505: Add feature drift detection
 
 ---
 
@@ -734,4 +734,27 @@
   - numpy needed for np.mean — cleaner than Python builtins for array comparison
   - validate_oos takes pd.DataFrame + pd.Series (same types as train_model) — consistent interface
   - US-504 (rollback on regression) is next — will integrate validate_oos into the retrain flow
+---
+
+## Iteration 32 — US-504: Add rollback on regression
+- What was done:
+  - Added `retrain_with_validation(conn, ticker, models_dir, oos_days) -> ModelRecord | None` to src/smaps/retrainer.py
+  - Integrates the full retrain cycle with OOS validation gate: builds features/labels, trains new model, loads current model, runs validate_oos()
+  - If OOS gate passes (new model better): saves new model via save_model(), returns ModelRecord
+  - If OOS gate fails (new model equal or worse): does NOT save new model, previous version remains active, returns None
+  - Rollback event logged at WARNING level with reason=oos_gate_failed, new/current OOS accuracy, oos_size, elapsed time
+  - Added `load_latest_model` to imports from model.registry
+  - Key insight: same data → same model → equal OOS accuracy → strict > comparison → gate blocks → rollback (useful for deterministic tests)
+  - Created tests/test_rollback.py with 10 tests in 2 classes:
+    - TestRollback (7 tests): previous_model_remains_active_after_rollback, returns_none_on_rollback, model_version_not_incremented_on_rollback, promotes_when_no_current_model, promotes_model_record_returned, rollback_does_not_create_artifact_file, raises_on_insufficient_data
+    - TestRollbackLogging (3 tests): logs_rollback_event, rollback_log_includes_metrics, logs_retrain_complete_on_promote
+  - Verified: make test (237 passed), make typecheck (success, 23 source files)
+- Files affected: src/smaps/retrainer.py, tests/test_rollback.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - retrain_with_validation() is a standalone function (not modifying retrain()) — preserves backward compatibility for existing tests and callers
+  - Rollback mechanism is simple: just don't call save_model() — load_latest_model() continues to return the previous version
+  - Equal OOS accuracy triggers rollback due to strict > comparison in validate_oos — this makes deterministic rollback testing easy (retrain on same data twice)
+  - No new artifact file is created on rollback since save_model() is never called — verifiable by comparing directory contents before/after
+  - The retrain_with_validation function duplicates retrain()'s data prep logic rather than calling retrain() because retrain() always saves — refactoring to share could be a future improvement
+  - US-505 (feature drift detection) is next — will add KS-test based drift detection
 ---
