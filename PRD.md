@@ -208,9 +208,9 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want proof that no future data leaks into features.
 
 **Acceptance Criteria:**
-- [ ] Test: inject known future bar, verify it does not appear in features at date T
-- [ ] Test: feature_date in snapshot <= as_of_date
-- [ ] Typecheck passes
+- [x] Test: inject known future bar, verify it does not appear in features at date T
+- [x] Test: feature_date in snapshot <= as_of_date
+- [x] Typecheck passes
 
 ---
 

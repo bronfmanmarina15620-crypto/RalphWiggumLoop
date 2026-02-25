@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-207: Add leakage prevention tests
+- US-301: Define prediction result model
 
 ---
 
@@ -420,4 +420,27 @@
   - NamedTuple is lighter than dataclass for simple value types that don't need validation
   - cursor.lastrowid gives the AUTOINCREMENT id after INSERT
   - US-207 (leakage prevention tests) is next — will verify no future data leaks into features
+---
+
+## Iteration 20 — US-207: Add leakage prevention tests
+- What was done:
+  - Created tests/test_leakage_prevention.py with 7 tests in 2 test classes
+  - TestFutureBarExcluded (4 tests):
+    - test_technical_excludes_future_bar: inject future OHLCV bar (close=999), verify features at T unchanged
+    - test_sentiment_excludes_future_score: inject future sentiment (score=-0.9), verify features at T unchanged
+    - test_fundamental_excludes_future_row: inject future fundamentals (pe_ratio=999), verify features at T unchanged
+    - test_combined_features_exclude_all_future_data: inject future data across ALL sources, verify build_features at T unchanged
+  - TestSnapshotDateConstraint (3 tests):
+    - test_snapshot_feature_date_equals_as_of_date: saved snapshot feature_date == as_of_date
+    - test_snapshot_feature_date_not_in_future: multiple snapshots all have feature_date <= as_of_date
+    - test_snapshot_preserves_features_at_point_in_time: snapshot at T still matches original after future data added
+  - Pattern: compute features before injecting future data, inject wildly different future data, recompute features at same as_of_date, assert identical results
+  - Verified: make test (107 passed), make typecheck (success)
+- Files affected: tests/test_leakage_prevention.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - Leakage prevention relies on SQL WHERE clause `date <= ?` in each pipeline's load method — simple but effective
+  - Compare before/after approach is the most robust leakage test: no need to know internal implementation
+  - NaN comparison requires special handling: math.isnan() check before pytest.approx()
+  - Feature snapshots are immutable once saved — loading from DB always returns the original features regardless of later data changes
+  - Phase 2 feature engineering is now fully complete (US-201 through US-207); Phase 3 (prediction model) is next
 ---
