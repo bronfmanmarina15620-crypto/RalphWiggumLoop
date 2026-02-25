@@ -123,11 +123,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want to ingest key fundamental metrics so that predictions include valuation context.
 
 **Acceptance Criteria:**
-- [ ] `src/smaps/collectors/fundamentals.py` exports `fetch_fundamentals(ticker) -> Fundamentals`
-- [ ] `Fundamentals` dataclass: ticker, date, pe_ratio, market_cap, eps, revenue (all optional floats)
-- [ ] Uses yfinance `.info` or equivalent free source
-- [ ] Unit test with mocked response verifies parsing
-- [ ] Typecheck passes
+- [x] `src/smaps/collectors/fundamentals.py` exports `fetch_fundamentals(ticker) -> Fundamentals`
+- [x] `Fundamentals` dataclass: ticker, date, pe_ratio, market_cap, eps, revenue (all optional floats)
+- [x] Uses yfinance `.info` or equivalent free source
+- [x] Unit test with mocked response verifies parsing
+- [x] Typecheck passes
 
 ### US-107: Add fundamentals table and persistence
 **Description:** As a developer, I want fundamentals stored so that features can reference them.

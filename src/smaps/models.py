@@ -43,3 +43,15 @@ class SentimentScore:
             raise ValueError(
                 f"score ({self.score}) must be between -1.0 and 1.0"
             )
+
+
+@dataclass(frozen=True, slots=True)
+class Fundamentals:
+    """Key fundamental metrics for a ticker."""
+
+    ticker: str
+    date: datetime.date
+    pe_ratio: float | None = None
+    market_cap: float | None = None
+    eps: float | None = None
+    revenue: float | None = None

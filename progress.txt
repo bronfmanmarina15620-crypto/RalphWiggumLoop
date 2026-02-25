@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-106: Implement fundamentals data collector
+- US-107: Add fundamentals table and persistence
 
 ---
 
@@ -195,4 +195,27 @@
   - Composite PK (ticker, date, source) allows multiple sentiment providers for the same ticker+date
   - INSERT OR REPLACE on composite PK is the same idempotent upsert pattern used for ohlcv_daily
   - Migration pattern is consistent: add function, add to MIGRATIONS list, bump SCHEMA_VERSION
+---
+
+## Iteration 11 — US-106: Implement fundamentals data collector
+- What was done:
+  - Added Fundamentals frozen dataclass to src/smaps/models.py with fields: ticker, date, pe_ratio, market_cap, eps, revenue (all optional floats except ticker/date)
+  - Created src/smaps/collectors/fundamentals.py with fetch_fundamentals(ticker) -> Fundamentals
+  - Uses yfinance Ticker(ticker).info to retrieve trailingPE, marketCap, trailingEps, totalRevenue
+  - Helper _float_or_none() safely converts values, returning None for missing/non-numeric data
+  - Created tests/test_collectors_fundamentals.py with 6 mocked tests:
+    - test_returns_fundamentals: verifies Fundamentals return type
+    - test_parses_all_fields: verifies field mapping from info dict
+    - test_partial_info_returns_none_for_missing: missing keys → None
+    - test_empty_info_all_none: no fundamental keys → all None
+    - test_ticker_passed_to_yfinance: verifies yf.Ticker() called with correct ticker
+    - test_non_numeric_value_returns_none: "N/A" and non-numeric strings → None
+  - Verified: make test (47 passed), make typecheck (success)
+- Files affected: src/smaps/models.py, src/smaps/collectors/fundamentals.py (new), tests/test_collectors_fundamentals.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - yfinance Ticker.info returns a dict[str, Any]; key names are camelCase (trailingPE, marketCap, trailingEps, totalRevenue)
+  - Info dict may contain "N/A" strings or None for missing metrics; always guard with try/except on float()
+  - Fundamentals uses date=datetime.date.today() since yfinance .info returns current snapshot, not historical
+  - Mock yf.Ticker at module level: @patch("smaps.collectors.fundamentals.yf.Ticker")
+  - Fundamentals dataclass uses Optional[float] (float | None) for all metric fields since any can be unavailable
 ---
