@@ -191,10 +191,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want one function that returns the full feature vector for a ticker+date.
 
 **Acceptance Criteria:**
-- [ ] `build_features(ticker, as_of_date) -> dict[str, float]` merges technical + sentiment + fundamental features
-- [ ] Returns consistent key set regardless of data availability
-- [ ] Unit test verifies combined output
-- [ ] Typecheck passes
+- [x] `build_features(ticker, as_of_date) -> dict[str, float]` merges technical + sentiment + fundamental features
+- [x] Returns consistent key set regardless of data availability
+- [x] Unit test verifies combined output
+- [x] Typecheck passes
 
 ### US-206: Add feature snapshot persistence
 **Description:** As a developer, I want feature vectors stored so that predictions are reproducible.

@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-205: Combine all features into unified vector
+- US-206: Add feature snapshot persistence
 
 ---
 
@@ -368,4 +368,29 @@
   - fundamentals_daily PK is (ticker, date) — no source dimension unlike sentiment
   - SQLite returns None for NULL columns; convert with `float(x) if x is not None else float("nan")`
   - US-205 (combine all features) is next — will merge TechnicalFeatures + SentimentFeatures + FundamentalFeatures
+---
+
+## Iteration 18 — US-205: Combine all features into unified vector
+- What was done:
+  - Created src/smaps/features/combined.py with `build_features(conn, ticker, as_of_date) -> dict[str, float]`
+  - Merges TechnicalFeatures (7 keys) + SentimentFeatures (2 keys) + FundamentalFeatures (3 keys) = 12 total features
+  - Exported FEATURE_KEYS frozenset for canonical key set reference
+  - Key set is always consistent: technical/fundamental use NaN for missing data, sentiment uses 0.0
+  - Created tests/test_features_combined.py with 8 tests:
+    - test_returns_all_expected_keys: verifies exact FEATURE_KEYS match
+    - test_all_values_are_floats: verifies all values are float type
+    - test_consistent_keys_regardless_of_data: same keys with and without data
+    - test_merges_technical_features: technical features present and finite with price data
+    - test_merges_sentiment_features: sentiment features present with sentiment data
+    - test_merges_fundamental_features: fundamental features present with fundamental data
+    - test_no_data_defaults: NaN for technical/fundamental, 0.0 for sentiment when no data
+    - test_full_data_all_keys_present: all 12 features finite when all data sources populated
+  - Verified: make test (94 passed), make typecheck (success)
+- Files affected: src/smaps/features/combined.py (new), tests/test_features_combined.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - build_features takes conn as first arg (same pattern as sub-pipelines needing DB access)
+  - dict.update() is the simplest merge — no key conflicts since each pipeline has unique keys
+  - FEATURE_KEYS frozenset is useful for downstream consumers (model training, snapshot validation)
+  - 12 total features: 7 technical + 2 sentiment + 3 fundamental
+  - US-206 (feature snapshot persistence) is next — will need FEATURE_KEYS for validation
 ---
