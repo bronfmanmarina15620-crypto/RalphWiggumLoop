@@ -182,10 +182,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want fundamental-derived features so that the model captures valuation context.
 
 **Acceptance Criteria:**
-- [ ] Computes: pe_ratio, eps, market_cap (latest available values)
-- [ ] Gracefully returns None/NaN for missing fields
-- [ ] Unit test verifies output
-- [ ] Typecheck passes
+- [x] Computes: pe_ratio, eps, market_cap (latest available values)
+- [x] Gracefully returns None/NaN for missing fields
+- [x] Unit test verifies output
+- [x] Typecheck passes
 
 ### US-205: Combine all features into unified vector
 **Description:** As a developer, I want one function that returns the full feature vector for a ticker+date.

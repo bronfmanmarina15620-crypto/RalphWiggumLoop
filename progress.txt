@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-204: Implement fundamental features
+- US-205: Combine all features into unified vector
 
 ---
 
@@ -342,4 +342,30 @@
   - 0.0 is the graceful fallback for missing sentiment data (not NaN like technical features) since 0.0 represents neutral sentiment
   - _rolling_avg uses values[-window:] slicing which safely returns fewer items when len < window
   - US-204 (fundamental features) will follow the same pattern with fundamentals_daily table
+---
+
+## Iteration 17 — US-204: Implement fundamental features
+- What was done:
+  - Created src/smaps/features/fundamental.py with FundamentalFeatures class implementing FeaturePipeline protocol
+  - Takes sqlite3.Connection in constructor; queries fundamentals_daily table filtered by date <= as_of_date
+  - Computes 3 features: pe_ratio, eps, market_cap (latest available values via ORDER BY date DESC LIMIT 1)
+  - Gracefully returns float('nan') for missing fields (None in DB → NaN) and when no data exists
+  - _load_latest() helper fetches the single most recent row for the ticker
+  - Created tests/test_features_fundamental.py with 8 tests:
+    - test_output_keys_and_types: verifies all 3 keys returned as floats
+    - test_pe_ratio_value: verifies pe_ratio from latest row
+    - test_eps_value: verifies eps from latest row
+    - test_market_cap_value: verifies market_cap from latest row
+    - test_latest_row_used: multiple rows → picks most recent <= as_of_date
+    - test_none_fields_return_nan: individual None fields → NaN
+    - test_no_data_returns_all_nan: unknown ticker → all NaN
+    - test_no_data_for_ticker_but_other_tickers_exist: isolation between tickers
+  - Verified: make test (86 passed), make typecheck (success)
+- Files affected: src/smaps/features/fundamental.py (new), tests/test_features_fundamental.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - FundamentalFeatures uses ORDER BY date DESC LIMIT 1 pattern (single latest row) vs SentimentFeatures which loads all rows for rolling computation
+  - NaN (not 0.0) is the appropriate fallback for fundamentals since 0.0 would be a misleading value for pe_ratio, eps, market_cap
+  - fundamentals_daily PK is (ticker, date) — no source dimension unlike sentiment
+  - SQLite returns None for NULL columns; convert with `float(x) if x is not None else float("nan")`
+  - US-205 (combine all features) is next — will merge TechnicalFeatures + SentimentFeatures + FundamentalFeatures
 ---
