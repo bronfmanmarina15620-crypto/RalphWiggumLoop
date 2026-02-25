@@ -32,6 +32,11 @@ def fetch_daily_bars(
         progress=False,
     )
 
+    # yfinance >= 0.2.31 returns multi-level columns for single tickers;
+    # flatten so we can index by simple column name.
+    if hasattr(data.columns, "nlevels") and data.columns.nlevels > 1:
+        data.columns = data.columns.droplevel(1)
+
     bars: list[OHLCVBar] = []
     for ts, row in data.iterrows():
         bar = OHLCVBar(
