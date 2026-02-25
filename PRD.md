@@ -539,6 +539,34 @@ All models retrained on full historical data (October 2024 – February 2026).
 | TSM | v2 | 45.8% | 192 | 48 |
 | CEG | v2 | 43.8% | 192 | 48 |
 
+### Phase 9 — Notifications
+
+### US-901: Add Twitter/X notification on pipeline completion
+**Description:** As a user, I want a tweet posted after each daily pipeline run so that I can monitor status from Twitter.
+
+**Acceptance Criteria:**
+- [x] `src/smaps/notifier.py` exports `send_twitter_update(result, settings)`
+- [x] Authenticates via OAuth 1.0a using tweepy (API v2)
+- [x] Posts concise status message: date, per-ticker direction+confidence, retrain status, elapsed time
+- [x] Notification failure logged but never crashes the pipeline
+- [x] Configurable via `SMAPS_TWITTER_ENABLED`, `SMAPS_TWITTER_API_KEY`, `SMAPS_TWITTER_API_SECRET`, `SMAPS_TWITTER_ACCESS_TOKEN`, `SMAPS_TWITTER_ACCESS_SECRET`
+- [x] GitHub Actions workflow passes secrets as env vars
+- [x] Unit tests with mocked tweepy verify formatting and dispatch
+- [x] Typecheck passes
+
+### US-902: Add Telegram bot notification on pipeline completion
+**Description:** As a user, I want a Telegram message sent after each daily pipeline run so that I can monitor status from Telegram.
+
+**Acceptance Criteria:**
+- [x] `src/smaps/notifier.py` exports `send_telegram_update(result, settings)`
+- [x] Uses Telegram Bot API via `urllib.request` (no extra dependency)
+- [x] Posts same concise status message as Twitter
+- [x] Notification failure logged but never crashes the pipeline
+- [x] Configurable via `SMAPS_TELEGRAM_ENABLED`, `SMAPS_TELEGRAM_BOT_TOKEN`, `SMAPS_TELEGRAM_CHAT_ID`
+- [x] GitHub Actions workflow passes secrets as env vars
+- [x] Unit tests with mocked HTTP verify formatting and dispatch
+- [x] Typecheck passes
+
 ---
 
 ## Non-Goals
@@ -555,5 +583,6 @@ All models retrained on full historical data (October 2024 – February 2026).
 - **Database:** SQLite (local, file-based; no external DB dependency)
 - **ML:** scikit-learn (LogisticRegression baseline); future stories may add XGBoost
 - **Data sources:** yfinance (OHLCV + fundamentals), free news/RSS for sentiment
-- **Scheduling:** GitHub Actions cron for MVP; can migrate to APScheduler or Celery later
+- **Scheduling:** GitHub Actions cron (weekdays 21:05 UTC / 23:05 Israel time); can migrate to APScheduler or Celery later
+- **Notifications:** Twitter/X (via tweepy) and Telegram (via Bot API); both optional, configured via env vars
 - **Testing:** pytest with mocked external APIs; no live API calls in tests

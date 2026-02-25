@@ -33,4 +33,13 @@ jobs:
           pip install -e .
 
       - name: Run daily pipeline
+        env:
+          SMAPS_TWITTER_ENABLED: ${{ secrets.TWITTER_API_KEY && 'true' || 'false' }}
+          SMAPS_TWITTER_API_KEY: ${{ secrets.TWITTER_API_KEY }}
+          SMAPS_TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
+          SMAPS_TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          SMAPS_TWITTER_ACCESS_SECRET: ${{ secrets.TWITTER_ACCESS_SECRET }}
+          SMAPS_TELEGRAM_ENABLED: ${{ secrets.TELEGRAM_BOT_TOKEN && 'true' || 'false' }}
+          SMAPS_TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          SMAPS_TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python -m smaps.pipeline

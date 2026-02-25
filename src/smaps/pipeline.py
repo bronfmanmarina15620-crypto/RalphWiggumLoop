@@ -130,6 +130,8 @@ def _run_ticker(
         pred_id = save_prediction(conn, prediction)
         result["predict"] = "ok"
         result["prediction_id"] = pred_id
+        result["direction"] = prediction.direction.value
+        result["confidence"] = prediction.confidence
         logger.info(
             "step=predict ticker=%s status=ok direction=%s confidence=%.4f "
             "elapsed=%.2fs",
@@ -274,11 +276,18 @@ def main(argv: list[str] | None = None) -> None:
         _run_dry(tickers, pipeline_date)
         return
 
-    run_pipeline(
+    result = run_pipeline(
         tickers=tickers,
         date=pipeline_date,
         db_path=settings.db_path,
     )
+
+    try:
+        from smaps.notifier import send_telegram_update, send_twitter_update
+        send_twitter_update(result, settings)
+        send_telegram_update(result, settings)
+    except Exception:
+        logging.getLogger(__name__).exception("notification_failed")
 
 
 if __name__ == "__main__":
