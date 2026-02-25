@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-108: Add multi-ticker ingestion orchestrator
+- US-201: Define feature pipeline interface
 
 ---
 
@@ -241,4 +241,28 @@
   - None values in Python pass through to SQLite as NULL via executemany without special handling
   - Migration pattern remains consistent: add function, add to MIGRATIONS list, bump SCHEMA_VERSION
   - Phase 1 data collection is now complete (US-101 through US-107); US-108 orchestrator is next
+---
+
+## Iteration 13 — US-108: Add multi-ticker ingestion orchestrator
+- What was done:
+  - Created src/smaps/collectors/ingest.py with `ingest_all(tickers, start, end, db_path)` function
+  - Calls fetch_daily_bars, fetch_sentiment, fetch_fundamentals for each ticker
+  - Error in one ticker is caught and logged; does not block other tickers
+  - Returns dict with "succeeded" and "failed" ticker lists for caller visibility
+  - Each collector step logged with timing via time.monotonic()
+  - Private helper `_ingest_ticker()` handles single-ticker orchestration
+  - Created tests/test_ingest.py with 5 tests:
+    - test_ingest_all_succeeds_for_multiple_tickers: all tickers succeed
+    - test_error_in_one_ticker_does_not_block_others: failing ticker isolated
+    - test_calls_all_three_collectors_per_ticker: verifies call args
+    - test_empty_ticker_list: edge case — no tickers
+    - test_data_persisted_to_database: end-to-end flow completes
+  - All external calls mocked (no live API calls in tests)
+  - Verified: make test (57 passed), make typecheck (success)
+- Files affected: src/smaps/collectors/ingest.py (new), tests/test_ingest.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - @patch decorators stack in reverse order as function parameters (outermost decorator = last param)
+  - time.monotonic() is the correct timer for elapsed-time measurement (not affected by system clock changes)
+  - Return value dict pattern (succeeded/failed) makes orchestrator testable without DB inspection
+  - Phase 1 data collection is now fully complete (US-101 through US-108); Phase 2 feature engineering is next
 ---

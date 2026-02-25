@@ -142,11 +142,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want all tickers ingested in one call so that the pipeline is simple.
 
 **Acceptance Criteria:**
-- [ ] `src/smaps/collectors/ingest.py` exports `ingest_all(tickers, start, end)`
-- [ ] Calls price, sentiment, and fundamentals collectors for each ticker
-- [ ] Error in one ticker does not block others
-- [ ] Each step logged with timing
-- [ ] Typecheck passes
+- [x] `src/smaps/collectors/ingest.py` exports `ingest_all(tickers, start, end)`
+- [x] Calls price, sentiment, and fundamentals collectors for each ticker
+- [x] Error in one ticker does not block others
+- [x] Each step logged with timing
+- [x] Typecheck passes
 
 ---
 
