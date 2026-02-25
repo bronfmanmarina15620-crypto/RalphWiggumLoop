@@ -397,10 +397,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a user, I want to see how accurate the system is so that I can gauge trust.
 
 **Acceptance Criteria:**
-- [ ] `GET /performance` returns 90-day accuracy, precision, recall per ticker
-- [ ] Response includes window start/end dates
-- [ ] Typecheck passes
-- [ ] Verify changes work in browser
+- [x] `GET /performance` returns 90-day accuracy, precision, recall per ticker
+- [x] Response includes window start/end dates
+- [x] Typecheck passes
+- [x] Verify changes work in browser
 
 ### US-703: Add minimal HTML dashboard
 **Description:** As a user, I want a visual dashboard so that I can monitor predictions and accuracy at a glance.

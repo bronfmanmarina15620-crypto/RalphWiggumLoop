@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-702: Add performance summary endpoint
+- US-703: Add minimal HTML dashboard
 
 ---
 
@@ -892,4 +892,26 @@
   - MAX(id) subquery pattern groups by ticker and picks the latest prediction (highest autoincrement id = most recent insert)
   - _get_conn() helper makes the endpoint testable by providing a single patch point for DB access
   - US-702 (performance summary endpoint) is next — will add GET /performance using compute_metrics
+---
+
+## Iteration 38 — US-702: Add performance summary endpoint
+- What was done:
+  - Added `GET /performance` endpoint to src/smaps/api.py
+  - Endpoint queries DISTINCT tickers from predictions table, then calls compute_metrics(conn, ticker, window_days=90) for each
+  - Response is a JSON array of MetricsReport.to_dict() objects — includes accuracy, precision_up, recall_up, precision_down, recall_down, window_start, window_end, total_predictions, evaluated_predictions per ticker
+  - Follows same pattern as /predictions/latest: _get_conn() per request, try/finally conn.close()
+  - Imported compute_metrics from smaps.evaluator into api.py
+  - Created tests/test_api_performance.py with 10 tests in 3 classes:
+    - TestPerformanceEndpoint (8 tests): returns JSON array, one entry per ticker, window dates included and valid ISO format, accuracy included, precision/recall fields present, AAPL correct prediction (accuracy=1.0), MSFT incorrect prediction (accuracy=0.0), total_predictions count
+    - TestPerformanceEmptyDB (1 test): empty DB returns empty list
+    - TestPerformanceUnevaluable (1 test): predictions without price data counted in total but not evaluated
+  - All tests use recent dates (today - 7 days) to stay within the 90-day window of compute_metrics
+  - Verified: make test (302 passed), make typecheck (success, 25 source files)
+- Files affected: src/smaps/api.py, tests/test_api_performance.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - compute_metrics uses 90-day window from today by default — test data must use recent dates (within window) or accuracy/counts will be zero
+  - DISTINCT ticker query on predictions table is simpler than getting tickers from Settings (shows actual tickers with predictions, not configured ones)
+  - Same test fixture pattern as US-701: file-based DB, populate, close, patch _get_conn with check_same_thread=False
+  - MetricsReport.to_dict() handles all JSON serialization including date->ISO string conversion
+  - US-703 (minimal HTML dashboard) is next — will serve static HTML at /dashboard
 ---

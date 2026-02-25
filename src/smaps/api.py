@@ -8,6 +8,7 @@ from fastapi import FastAPI, Query
 
 from smaps.config import Settings
 from smaps.db import ensure_schema, get_latest_predictions
+from smaps.evaluator import compute_metrics
 
 app = FastAPI(title="SMAPS API", version="0.1.0")
 
@@ -45,6 +46,27 @@ def predictions_latest(
                 "model_version": r.model_version,
             }
             for r in records
+        ]
+    finally:
+        conn.close()
+
+
+@app.get("/performance")
+def performance() -> list[dict[str, object]]:
+    """Return 90-day accuracy, precision, and recall per ticker.
+
+    Computes rolling metrics over the last 90 days for every ticker that
+    has at least one prediction.
+    """
+    conn = _get_conn()
+    try:
+        cur = conn.execute(
+            "SELECT DISTINCT ticker FROM predictions ORDER BY ticker"
+        )
+        tickers = [row[0] for row in cur.fetchall()]
+        return [
+            compute_metrics(conn, ticker, window_days=90).to_dict()
+            for ticker in tickers
         ]
     finally:
         conn.close()
