@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-201: Define feature pipeline interface
+- US-202: Implement technical indicator features
 
 ---
 
@@ -265,4 +265,24 @@
   - time.monotonic() is the correct timer for elapsed-time measurement (not affected by system clock changes)
   - Return value dict pattern (succeeded/failed) makes orchestrator testable without DB inspection
   - Phase 1 data collection is now fully complete (US-101 through US-108); Phase 2 feature engineering is next
+---
+
+## Iteration 14 — US-201: Define feature pipeline interface
+- What was done:
+  - Created src/smaps/features/ package with __init__.py
+  - Created src/smaps/features/pipeline.py with FeaturePipeline Protocol class
+  - Protocol defines `transform(ticker, as_of_date) -> dict[str, float]` method
+  - Docstring specifies no-future-data contract: only data dated <= as_of_date may be used
+  - Created tests/test_feature_pipeline.py with 3 tests:
+    - test_dummy_implements_protocol: concrete class satisfies FeaturePipeline type annotation
+    - test_transform_returns_dict_of_floats: verifies return type contract
+    - test_protocol_is_runtime_checkable_via_typing: verifies structural subtyping via hasattr
+  - Verified: make test (60 passed), make typecheck (success)
+- Files affected: src/smaps/features/__init__.py (new), src/smaps/features/pipeline.py (new), tests/test_feature_pipeline.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - typing.Protocol provides structural subtyping — no explicit inheritance required from implementors
+  - Protocol methods use `...` (Ellipsis) as body, not `pass`, per convention
+  - FeaturePipeline is the base interface for US-202 (technical), US-203 (sentiment), US-204 (fundamental) features
+  - First Phase 2 file — features/ package will be the home for all feature engineering code
+  - Next stories (US-202..US-204) will create concrete implementations of this protocol
 ---

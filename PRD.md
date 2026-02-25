@@ -156,9 +156,9 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want a standard interface so that feature pipelines are composable.
 
 **Acceptance Criteria:**
-- [ ] Protocol `FeaturePipeline` with `transform(ticker, as_of_date) -> dict[str, float]`
-- [ ] Docstring specifies no-future-data contract
-- [ ] Typecheck passes
+- [x] Protocol `FeaturePipeline` with `transform(ticker, as_of_date) -> dict[str, float]`
+- [x] Docstring specifies no-future-data contract
+- [x] Typecheck passes
 
 ### US-202: Implement technical indicator features
 **Description:** As a developer, I want price-derived features so that the model captures momentum and volatility patterns.
