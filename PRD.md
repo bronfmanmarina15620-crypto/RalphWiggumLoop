@@ -312,11 +312,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want retraining to happen end-to-end so that no human intervention is needed.
 
 **Acceptance Criteria:**
-- [ ] `retrain(ticker)` fetches latest data, builds features, trains new model, saves with incremented version
-- [ ] Uses all available historical data (not just recent window)
-- [ ] Logs new model version and training metrics
-- [ ] Unit test verifies new model version is created
-- [ ] Typecheck passes
+- [x] `retrain(ticker)` fetches latest data, builds features, trains new model, saves with incremented version
+- [x] Uses all available historical data (not just recent window)
+- [x] Logs new model version and training metrics
+- [x] Unit test verifies new model version is created
+- [x] Typecheck passes
 
 ### US-503: Add out-of-sample validation gate
 **Description:** As a developer, I want a safety check before deploying a new model so that bad models don't go live.

@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-502: Implement automated retraining pipeline
+- US-503: Add out-of-sample validation gate
 
 ---
 
@@ -684,4 +684,30 @@
   - retrainer.py module will also host retrain() (US-502), OOS validation gate (US-503), and rollback (US-504)
   - as_of_date parameter is essential for deterministic testing — avoids dependence on datetime.date.today()
   - US-502 (implement automated retraining pipeline) is next — will add retrain() function to retrainer.py
+---
+
+## Iteration 30 — US-502: Implement automated retraining pipeline
+- What was done:
+  - Added `retrain(conn, ticker, models_dir) -> ModelRecord` function to src/smaps/retrainer.py
+  - Added `_get_trading_dates(conn, ticker) -> list[datetime.date]` helper to query all OHLCV dates
+  - retrain() fetches all available OHLCV dates, builds features for each date, computes next-day direction labels (UP=1/DOWN=0)
+  - Uses all historical data (not just recent window): every date pair becomes a training sample
+  - Trains new model via train_model() with features DataFrame and labels Series
+  - Saves model via save_model() which auto-increments version per ticker
+  - Logs retrain_start (ticker, date range, count) and retrain_complete (version, accuracy, elapsed time)
+  - Raises ValueError if fewer than 2 trading days available (need at least 1 feature/label pair)
+  - New imports added: time, pandas, build_features, save_model, ModelRecord, train_model, TrainedModel
+  - Created tests/test_retrain.py with 11 tests in 2 classes:
+    - TestRetrain (9 tests): returns_model_record, new_model_version_created, version_increments_on_second_retrain, uses_all_historical_data (verifies 50 days → 49 samples), model_produces_predictions, raises_on_insufficient_data, raises_on_no_data, metrics_logged_in_record, ticker_isolation
+    - TestRetrainLogging (2 tests): logs_retrain_start, logs_retrain_complete
+  - Verified: make test (213 passed), make typecheck (success, 23 source files)
+- Files affected: src/smaps/retrainer.py, tests/test_retrain.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - retrain() builds features for dates[:-1] (all but last) since each needs a next-day label; this gives N-1 samples for N trading days
+  - Close-price lookup via dict comprehension from SQL query is efficient for label computation (no repeated DB queries)
+  - Label convention: UP=1 (close_next >= close_today), DOWN=0 (strict less than) — matches evaluator's >= convention for flat days
+  - _get_trading_dates uses DISTINCT + ORDER BY ASC to get clean sorted list from ohlcv_daily
+  - time.monotonic() for elapsed measurement (same pattern as ingest.py)
+  - retrain() takes conn as first arg — consistent with all DB-accessing functions in the codebase
+  - US-503 (out-of-sample validation gate) is next — will add OOS validation before promoting new models
 ---
