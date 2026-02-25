@@ -330,6 +330,17 @@ def get_latest_predictions(
     ]
 
 
+def get_last_retrain_dates(conn: sqlite3.Connection) -> dict[str, str]:
+    """Return the most recent trained_at timestamp per ticker from model_registry.
+
+    Returns a dict mapping ticker -> ISO datetime string.
+    """
+    cur = conn.execute(
+        "SELECT ticker, MAX(trained_at) FROM model_registry GROUP BY ticker ORDER BY ticker"
+    )
+    return {row[0]: row[1] for row in cur.fetchall()}
+
+
 def save_metrics_report(report: dict[str, object], reports_dir: str = "reports") -> Path:
     """Save a metrics report as a JSON file in the reports directory.
 

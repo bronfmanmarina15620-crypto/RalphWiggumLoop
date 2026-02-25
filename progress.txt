@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-703: Add minimal HTML dashboard
+- All stories complete!
 
 ---
 
@@ -914,4 +914,31 @@
   - Same test fixture pattern as US-701: file-based DB, populate, close, patch _get_conn with check_same_thread=False
   - MetricsReport.to_dict() handles all JSON serialization including date->ISO string conversion
   - US-703 (minimal HTML dashboard) is next — will serve static HTML at /dashboard
+---
+
+## Iteration 39 — US-703: Add minimal HTML dashboard
+- What was done:
+  - Added `get_last_retrain_dates(conn) -> dict[str, str]` to src/smaps/db.py querying model_registry for MAX(trained_at) per ticker
+  - Added `GET /retrain-info` endpoint to src/smaps/api.py returning last retrain date per ticker
+  - Added `GET /dashboard` endpoint serving a static HTML page via FastAPI HTMLResponse
+  - Dashboard HTML contains three sections: prediction table, accuracy chart (CSS bar chart), last retrain date
+  - JavaScript auto-fetches from `/predictions/latest`, `/performance`, and `/retrain-info` on page load
+  - Prediction table shows ticker, date, direction (color-coded UP/DOWN), confidence %, and model version
+  - Accuracy chart uses CSS bar fills showing accuracy, precision (UP), and recall (UP) per ticker
+  - Retrain section shows ticker badges with last retrain timestamps
+  - All sections show "Loading..." initially, then gracefully handle empty data with "No data available" messages
+  - Dashboard HTML stored as `_DASHBOARD_HTML` module constant in api.py (no external template files needed)
+  - Created tests/test_api_dashboard.py with 12 tests in 3 classes:
+    - TestDashboardEndpoint (6 tests): returns HTML, contains title, predictions section, accuracy section, retrain section, fetch calls present
+    - TestRetrainInfoEndpoint (3 tests): returns dict, latest per ticker, empty DB returns empty dict
+    - TestGetLastRetrainDatesDB (3 tests): no models returns empty dict, latest per ticker, sorted by ticker
+  - Verified: make test (314 passed), make typecheck (success, 25 source files)
+- Files affected: src/smaps/api.py, src/smaps/db.py, tests/test_api_dashboard.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - FastAPI HTMLResponse requires `from fastapi.responses import HTMLResponse` and `response_class=HTMLResponse` on the route decorator
+  - Inline HTML string constant is simpler than external template file for a single-page dashboard — no Jinja2 dependency needed
+  - CSS bar chart (width percentage) is a lightweight alternative to external chart libraries like Chart.js
+  - model_registry.trained_at stores ISO datetime strings; MAX() on ISO strings gives the chronologically latest value (lexicographic sort works for ISO format)
+  - _make_client() helper in tests encapsulates the _get_conn patching pattern — cleaner than repeating the full fixture pattern
+  - All PRD stories (US-001 through US-703) are now complete
 ---

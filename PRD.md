@@ -406,11 +406,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a user, I want a visual dashboard so that I can monitor predictions and accuracy at a glance.
 
 **Acceptance Criteria:**
-- [ ] Static HTML page showing: prediction table, accuracy chart, last retrain date
-- [ ] Served via FastAPI at `/dashboard`
-- [ ] Auto-refreshes data on load
-- [ ] Typecheck passes
-- [ ] Verify changes work in browser
+- [x] Static HTML page showing: prediction table, accuracy chart, last retrain date
+- [x] Served via FastAPI at `/dashboard`
+- [x] Auto-refreshes data on load
+- [x] Typecheck passes
+- [x] Verify changes work in browser
 
 ---
 
