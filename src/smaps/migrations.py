@@ -87,6 +87,24 @@ def migration_005_model_registry(conn: sqlite3.Connection) -> None:
     )
 
 
+def migration_006_predictions(conn: sqlite3.Connection) -> None:
+    """Create the predictions table."""
+    conn.execute(
+        """\
+        CREATE TABLE IF NOT EXISTS predictions (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticker              TEXT    NOT NULL,
+            prediction_date     TEXT    NOT NULL,  -- YYYY-MM-DD
+            direction           TEXT    NOT NULL,  -- UP or DOWN
+            confidence          REAL    NOT NULL,
+            model_version       TEXT    NOT NULL,
+            feature_snapshot_id INTEGER,
+            created_at          TEXT    NOT NULL   -- ISO datetime
+        )
+        """
+    )
+
+
 # Ordered list of all migrations. Index 0 = migration 1, etc.
 MIGRATIONS: list[tuple[int, Callable[[sqlite3.Connection], None]]] = [
     (1, migration_001_initial),
@@ -94,4 +112,5 @@ MIGRATIONS: list[tuple[int, Callable[[sqlite3.Connection], None]]] = [
     (3, migration_003_fundamentals),
     (4, migration_004_feature_snapshots),
     (5, migration_005_model_registry),
+    (6, migration_006_predictions),
 ]

@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-305: Persist predictions to database
+- US-401: Match predictions to realized outcomes
 
 ---
 
@@ -557,4 +557,29 @@
   - Fully mocked test (mock load_latest_model + build_features) is the cleanest way to verify output schema without real data
   - Tests with real TrainedModel work because features default to NaN/0.0 when no OHLCV/sentiment/fundamental data in DB
   - US-305 (persist predictions to database) is next — will need migration for predictions table
+---
+
+## Iteration 25 — US-305: Persist predictions to database
+- What was done:
+  - Added migration_006_predictions to migrations.py creating `predictions` table
+  - Columns: id (INTEGER PRIMARY KEY AUTOINCREMENT), ticker (TEXT), prediction_date (TEXT), direction (TEXT), confidence (REAL), model_version (TEXT), feature_snapshot_id (INTEGER nullable), created_at (TEXT ISO datetime)
+  - Bumped SCHEMA_VERSION from 5 to 6 in db.py
+  - Added PredictionRecord NamedTuple to db.py for loaded prediction rows
+  - Added `save_prediction(conn, prediction, feature_snapshot_id=None) -> int` returning row id
+  - Added `load_prediction(conn, prediction_id) -> PredictionRecord | None` for retrieval by id
+  - Direction stored as string value ("UP"/"DOWN") via Direction.value; loaded back via Direction(str)
+  - created_at stored as UTC ISO datetime via datetime.now(tz=datetime.timezone.utc)
+  - Created tests/test_prediction_persistence.py with 9 tests in 2 classes:
+    - TestSavePrediction (4 tests): autoincrement id, sequential ids, with feature_snapshot_id, without feature_snapshot_id
+    - TestLoadPrediction (5 tests): round-trip (core AC), nonexistent returns None, direction UP round-trip, direction DOWN round-trip, created_at is ISO datetime with timezone
+  - Verified: make test (155 passed), make typecheck (success)
+- Files affected: src/smaps/migrations.py, src/smaps/db.py, tests/test_prediction_persistence.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - Direction enum stored as TEXT using .value ("UP"/"DOWN"); loaded back via Direction(row_value) constructor
+  - predictions table uses AUTOINCREMENT id (not composite PK) since same ticker+date could have multiple predictions from different model versions
+  - feature_snapshot_id is nullable INTEGER — allows linking prediction to its feature snapshot for reproducibility
+  - PredictionRecord NamedTuple follows same pattern as FeatureSnapshot for lightweight loaded rows
+  - Migration pattern remains consistent: add function, add to MIGRATIONS list, bump SCHEMA_VERSION
+  - Phase 3 prediction model is now fully complete (US-301 through US-305); Phase 4 (evaluator) is next
+  - US-401 (match predictions to realized outcomes) is next — will need to compare predicted vs actual direction
 ---

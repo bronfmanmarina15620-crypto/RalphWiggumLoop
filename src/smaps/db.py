@@ -8,9 +8,9 @@ import sqlite3
 from typing import NamedTuple
 
 from smaps.migrations import MIGRATIONS
-from smaps.models import Fundamentals, OHLCVBar, SentimentScore
+from smaps.models import Direction, Fundamentals, OHLCVBar, PredictionResult, SentimentScore
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 
 class FeatureSnapshot(NamedTuple):
@@ -168,4 +168,68 @@ def load_feature_snapshot(conn: sqlite3.Connection, snapshot_id: int) -> Feature
         feature_date=datetime.date.fromisoformat(row[2]),
         features=json.loads(row[3]),
         pipeline_version=row[4],
+    )
+
+
+class PredictionRecord(NamedTuple):
+    """A persisted prediction row."""
+
+    id: int | None
+    ticker: str
+    prediction_date: datetime.date
+    direction: Direction
+    confidence: float
+    model_version: str
+    feature_snapshot_id: int | None
+    created_at: str
+
+
+def save_prediction(
+    conn: sqlite3.Connection,
+    prediction: PredictionResult,
+    feature_snapshot_id: int | None = None,
+) -> int:
+    """Persist a prediction to the database. Returns the row id."""
+    created_at = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+    cur = conn.execute(
+        """\
+        INSERT INTO predictions
+            (ticker, prediction_date, direction, confidence,
+             model_version, feature_snapshot_id, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            prediction.ticker,
+            prediction.prediction_date.isoformat(),
+            prediction.direction.value,
+            prediction.confidence,
+            prediction.model_version,
+            feature_snapshot_id,
+            created_at,
+        ),
+    )
+    conn.commit()
+    return cur.lastrowid  # type: ignore[return-value]
+
+
+def load_prediction(conn: sqlite3.Connection, prediction_id: int) -> PredictionRecord | None:
+    """Load a prediction by id. Returns None if not found."""
+    cur = conn.execute(
+        "SELECT id, ticker, prediction_date, direction, confidence, "
+        "model_version, feature_snapshot_id, created_at "
+        "FROM predictions WHERE id = ?",
+        (prediction_id,),
+    )
+    row = cur.fetchone()
+    if row is None:
+        return None
+    return PredictionRecord(
+        id=row[0],
+        ticker=row[1],
+        prediction_date=datetime.date.fromisoformat(row[2]),
+        direction=Direction(row[3]),
+        confidence=row[4],
+        model_version=row[5],
+        feature_snapshot_id=row[6],
+        created_at=row[7],
     )

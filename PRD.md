@@ -257,9 +257,9 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want predictions stored so that evaluation can match them to outcomes.
 
 **Acceptance Criteria:**
-- [ ] Migration adds `predictions` table: id, ticker, prediction_date, direction, confidence, model_version, feature_snapshot_id, created_at
-- [ ] Unit test verifies prediction round-trip
-- [ ] Typecheck passes
+- [x] Migration adds `predictions` table: id, ticker, prediction_date, direction, confidence, model_version, feature_snapshot_id, created_at
+- [x] Unit test verifies prediction round-trip
+- [x] Typecheck passes
 
 ---
 
