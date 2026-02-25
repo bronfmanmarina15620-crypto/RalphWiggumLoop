@@ -56,9 +56,25 @@ def migration_003_fundamentals(conn: sqlite3.Connection) -> None:
     )
 
 
+def migration_004_feature_snapshots(conn: sqlite3.Connection) -> None:
+    """Create the feature_snapshots table."""
+    conn.execute(
+        """\
+        CREATE TABLE IF NOT EXISTS feature_snapshots (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticker            TEXT    NOT NULL,
+            feature_date      TEXT    NOT NULL,  -- YYYY-MM-DD
+            features_json     TEXT    NOT NULL,
+            pipeline_version  TEXT    NOT NULL
+        )
+        """
+    )
+
+
 # Ordered list of all migrations. Index 0 = migration 1, etc.
 MIGRATIONS: list[tuple[int, Callable[[sqlite3.Connection], None]]] = [
     (1, migration_001_initial),
     (2, migration_002_sentiment),
     (3, migration_003_fundamentals),
+    (4, migration_004_feature_snapshots),
 ]

@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-206: Add feature snapshot persistence
+- US-207: Add leakage prevention tests
 
 ---
 
@@ -393,4 +393,31 @@
   - FEATURE_KEYS frozenset is useful for downstream consumers (model training, snapshot validation)
   - 12 total features: 7 technical + 2 sentiment + 3 fundamental
   - US-206 (feature snapshot persistence) is next — will need FEATURE_KEYS for validation
+---
+
+## Iteration 19 — US-206: Add feature snapshot persistence
+- What was done:
+  - Added migration_004_feature_snapshots to migrations.py creating `feature_snapshots` table
+  - Columns: id (INTEGER PRIMARY KEY AUTOINCREMENT), ticker (TEXT), feature_date (TEXT), features_json (TEXT), pipeline_version (TEXT)
+  - Bumped SCHEMA_VERSION from 3 to 4 in db.py
+  - Added FeatureSnapshot NamedTuple to db.py: id, ticker, feature_date, features, pipeline_version
+  - Added `save_feature_snapshot(conn, ticker, feature_date, features, pipeline_version) -> int` returning row id
+  - Added `load_feature_snapshot(conn, snapshot_id) -> FeatureSnapshot | None` for retrieval by id
+  - Features stored as JSON text via json.dumps/json.loads
+  - Created tests/test_feature_snapshot_persistence.py with 6 tests:
+    - test_save_and_load_round_trip: core AC — save snapshot, load back, verify all fields equal
+    - test_save_returns_autoincrement_id: each save gets unique auto-incremented id
+    - test_load_nonexistent_returns_none: missing id returns None
+    - test_features_with_nan_values: NaN values handled (JSON encodes as null)
+    - test_multiple_snapshots_same_ticker_date: same ticker+date can have multiple snapshots (different pipeline versions)
+    - test_feature_snapshot_named_tuple: verifies FeatureSnapshot structure
+  - Verified: make test (100 passed), make typecheck (success)
+- Files affected: src/smaps/migrations.py, src/smaps/db.py, tests/test_feature_snapshot_persistence.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - feature_snapshots uses AUTOINCREMENT id (not composite PK) since same ticker+date can have multiple snapshots
+  - json.dumps/json.loads is the simplest way to serialize dict[str, float] for SQLite TEXT column
+  - NaN values in JSON: Python json.dumps encodes float('nan') as NaN (non-standard JSON) — json.loads decodes back correctly in Python but may cause issues with other JSON parsers
+  - NamedTuple is lighter than dataclass for simple value types that don't need validation
+  - cursor.lastrowid gives the AUTOINCREMENT id after INSERT
+  - US-207 (leakage prevention tests) is next — will verify no future data leaks into features
 ---

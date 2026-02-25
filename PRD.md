@@ -200,9 +200,9 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want feature vectors stored so that predictions are reproducible.
 
 **Acceptance Criteria:**
-- [ ] Migration adds `feature_snapshots` table: id, ticker, feature_date, features_json, pipeline_version
-- [ ] Round-trip test: save and load snapshot, verify equality
-- [ ] Typecheck passes
+- [x] Migration adds `feature_snapshots` table: id, ticker, feature_date, features_json, pipeline_version
+- [x] Round-trip test: save and load snapshot, verify equality
+- [x] Typecheck passes
 
 ### US-207: Add leakage prevention tests
 **Description:** As a developer, I want proof that no future data leaks into features.

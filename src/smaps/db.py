@@ -2,12 +2,25 @@
 
 from __future__ import annotations
 
+import datetime
+import json
 import sqlite3
+from typing import NamedTuple
 
 from smaps.migrations import MIGRATIONS
 from smaps.models import Fundamentals, OHLCVBar, SentimentScore
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
+
+
+class FeatureSnapshot(NamedTuple):
+    """A persisted feature vector snapshot."""
+
+    id: int | None
+    ticker: str
+    feature_date: datetime.date
+    features: dict[str, float]
+    pipeline_version: str
 
 
 def get_connection(db_path: str = ":memory:") -> sqlite3.Connection:
@@ -118,3 +131,41 @@ def upsert_sentiment(conn: sqlite3.Connection, scores: list[SentimentScore]) -> 
     )
     conn.commit()
     return len(scores)
+
+
+def save_feature_snapshot(
+    conn: sqlite3.Connection,
+    ticker: str,
+    feature_date: datetime.date,
+    features: dict[str, float],
+    pipeline_version: str,
+) -> int:
+    """Persist a feature vector snapshot. Returns the row id."""
+    cur = conn.execute(
+        """\
+        INSERT INTO feature_snapshots (ticker, feature_date, features_json, pipeline_version)
+        VALUES (?, ?, ?, ?)
+        """,
+        (ticker, feature_date.isoformat(), json.dumps(features), pipeline_version),
+    )
+    conn.commit()
+    return cur.lastrowid  # type: ignore[return-value]
+
+
+def load_feature_snapshot(conn: sqlite3.Connection, snapshot_id: int) -> FeatureSnapshot | None:
+    """Load a feature snapshot by id. Returns None if not found."""
+    cur = conn.execute(
+        "SELECT id, ticker, feature_date, features_json, pipeline_version "
+        "FROM feature_snapshots WHERE id = ?",
+        (snapshot_id,),
+    )
+    row = cur.fetchone()
+    if row is None:
+        return None
+    return FeatureSnapshot(
+        id=row[0],
+        ticker=row[1],
+        feature_date=datetime.date.fromisoformat(row[2]),
+        features=json.loads(row[3]),
+        pipeline_version=row[4],
+    )
