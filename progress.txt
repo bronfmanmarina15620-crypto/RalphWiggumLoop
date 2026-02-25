@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-503: Add out-of-sample validation gate
+- US-504: Add rollback on regression
 
 ---
 
@@ -710,4 +710,28 @@
   - time.monotonic() for elapsed measurement (same pattern as ingest.py)
   - retrain() takes conn as first arg — consistent with all DB-accessing functions in the codebase
   - US-503 (out-of-sample validation gate) is next — will add OOS validation before promoting new models
+---
+
+## Iteration 31 — US-503: Add out-of-sample validation gate
+- What was done:
+  - Added `validate_oos(new_model, features_df, labels, current_model=None, oos_days=30) -> tuple[bool, dict[str, float]]` to src/smaps/retrainer.py
+  - Function holds out last `oos_days` samples as OOS validation set
+  - New model promoted only if OOS accuracy strictly exceeds current model's OOS accuracy
+  - When no current model exists, new model is always promoted
+  - When samples <= oos_days, promotes by default (insufficient data for validation)
+  - Gate decision logged with metrics at INFO level (oos_gate result=promote/blocked)
+  - Added numpy import to retrainer.py for np.mean accuracy computation
+  - Created tests/test_oos_validation.py with 14 tests in 2 classes:
+    - TestValidateOos (10 tests): promotes no current model, promotes better model, blocks worse model, blocks equal accuracy, promotes insufficient data, oos_size matches oos_days, default oos_days=30, metrics with/without current model, accuracy in valid range
+    - TestValidateOosLogging (4 tests): logs promote no current, logs promote better, logs blocked, logs insufficient data
+  - Verified: make test (227 passed), make typecheck (success, 23 source files)
+- Files affected: src/smaps/retrainer.py, tests/test_oos_validation.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - validate_oos is a standalone function (not integrated into retrain() yet) — US-504 rollback will integrate it
+  - Linearly separable synthetic data (f1 > 0 → UP) with near-zero noise is a reliable way to create a "good" model for testing
+  - Random labels produce a "bad" model with ~50% accuracy on structured data — useful as comparison baseline
+  - Same model as both new and current guarantees equal accuracy → strict > comparison correctly blocks
+  - numpy needed for np.mean — cleaner than Python builtins for array comparison
+  - validate_oos takes pd.DataFrame + pd.Series (same types as train_model) — consistent interface
+  - US-504 (rollback on regression) is next — will integrate validate_oos into the retrain flow
 ---

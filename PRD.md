@@ -322,11 +322,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want a safety check before deploying a new model so that bad models don't go live.
 
 **Acceptance Criteria:**
-- [ ] Hold-out OOS period (last 30 days) used for validation
-- [ ] New model only promoted if OOS accuracy > current model accuracy
-- [ ] Gate decision logged with metrics
-- [ ] Unit test verifies gate blocks inferior model
-- [ ] Typecheck passes
+- [x] Hold-out OOS period (last 30 days) used for validation
+- [x] New model only promoted if OOS accuracy > current model accuracy
+- [x] Gate decision logged with metrics
+- [x] Unit test verifies gate blocks inferior model
+- [x] Typecheck passes
 
 ### US-504: Add rollback on regression
 **Description:** As a developer, I want automatic rollback so that a bad retrain doesn't degrade the system.

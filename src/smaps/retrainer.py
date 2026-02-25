@@ -6,6 +6,7 @@ import datetime
 import sqlite3
 import time
 
+import numpy as np
 import pandas as pd
 
 from smaps.evaluator import compute_metrics
@@ -68,6 +69,99 @@ def should_retrain(
         window_days,
     )
     return False
+
+
+def validate_oos(
+    new_model: TrainedModel,
+    features_df: pd.DataFrame,
+    labels: pd.Series,  # type: ignore[type-arg]
+    current_model: TrainedModel | None = None,
+    oos_days: int = 30,
+) -> tuple[bool, dict[str, float]]:
+    """Out-of-sample validation gate for model promotion.
+
+    Holds out the last *oos_days* samples as the OOS validation set and
+    evaluates the candidate model's accuracy on it.
+
+    If a *current_model* is provided, the new model is only promoted when
+    its OOS accuracy **strictly exceeds** the current model's OOS accuracy.
+    If no current model exists, the new model is always promoted.
+
+    Args:
+        new_model: Newly trained model candidate.
+        features_df: Full feature matrix (rows=samples, ordered
+            chronologically).
+        labels: Binary labels (1=UP, 0=DOWN) aligned with *features_df*.
+        current_model: Currently deployed model, or ``None`` if this is
+            the first model for the ticker.
+        oos_days: Number of most-recent samples to hold out for OOS
+            validation.
+
+    Returns:
+        Tuple of ``(should_promote, metrics)`` where *should_promote* is
+        a boolean and *metrics* is a dict containing at least
+        ``new_oos_accuracy`` and ``oos_size``.
+    """
+    n = len(features_df)
+
+    if n <= oos_days:
+        logger.info(
+            "oos_gate result=promote reason=insufficient_data "
+            "samples=%d oos_days=%d",
+            n,
+            oos_days,
+        )
+        return True, {"promoted": 1.0, "oos_size": float(n)}
+
+    oos_features = features_df.iloc[-oos_days:]
+    oos_labels = labels.iloc[-oos_days:]
+
+    # Evaluate new model on OOS
+    oos_filled = oos_features[new_model.feature_names].fillna(0.0)
+    new_preds = new_model.pipeline.predict(oos_filled)
+    new_accuracy = float(np.mean(new_preds == oos_labels.values))
+
+    metrics: dict[str, float] = {
+        "new_oos_accuracy": new_accuracy,
+        "oos_size": float(len(oos_labels)),
+    }
+
+    if current_model is None:
+        metrics["promoted"] = 1.0
+        logger.info(
+            "oos_gate result=promote reason=no_current_model "
+            "new_oos_accuracy=%.4f oos_size=%d",
+            new_accuracy,
+            len(oos_labels),
+        )
+        return True, metrics
+
+    # Evaluate current model on OOS
+    current_filled = oos_features[current_model.feature_names].fillna(0.0)
+    current_preds = current_model.pipeline.predict(current_filled)
+    current_accuracy = float(np.mean(current_preds == oos_labels.values))
+    metrics["current_oos_accuracy"] = current_accuracy
+
+    if new_accuracy > current_accuracy:
+        metrics["promoted"] = 1.0
+        logger.info(
+            "oos_gate result=promote new_oos_accuracy=%.4f "
+            "current_oos_accuracy=%.4f oos_size=%d",
+            new_accuracy,
+            current_accuracy,
+            len(oos_labels),
+        )
+        return True, metrics
+
+    metrics["promoted"] = 0.0
+    logger.info(
+        "oos_gate result=blocked new_oos_accuracy=%.4f "
+        "current_oos_accuracy=%.4f oos_size=%d",
+        new_accuracy,
+        current_accuracy,
+        len(oos_labels),
+    )
+    return False, metrics
 
 
 def _get_trading_dates(conn: sqlite3.Connection, ticker: str) -> list[datetime.date]:
