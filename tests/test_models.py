@@ -6,7 +6,7 @@ import datetime
 
 import pytest
 
-from smaps.models import OHLCVBar
+from smaps.models import Direction, OHLCVBar, PredictionResult
 
 
 class TestOHLCVBar:
@@ -83,3 +83,96 @@ class TestOHLCVBar:
         )
         with pytest.raises(AttributeError):
             bar.close = 999.0  # type: ignore[misc]
+
+
+class TestPredictionResult:
+    """Tests for PredictionResult dataclass."""
+
+    def test_create_valid_prediction(self) -> None:
+        """Valid PredictionResult can be created with correct fields."""
+        pred = PredictionResult(
+            ticker="AAPL",
+            prediction_date=datetime.date(2025, 1, 15),
+            direction=Direction.UP,
+            confidence=0.85,
+            model_version="v1",
+        )
+        assert pred.ticker == "AAPL"
+        assert pred.prediction_date == datetime.date(2025, 1, 15)
+        assert pred.direction == Direction.UP
+        assert pred.confidence == 0.85
+        assert pred.model_version == "v1"
+
+    def test_direction_down(self) -> None:
+        """PredictionResult accepts Direction.DOWN."""
+        pred = PredictionResult(
+            ticker="MSFT",
+            prediction_date=datetime.date(2025, 1, 15),
+            direction=Direction.DOWN,
+            confidence=0.60,
+            model_version="v2",
+        )
+        assert pred.direction == Direction.DOWN
+        assert pred.direction.value == "DOWN"
+
+    def test_direction_enum_values(self) -> None:
+        """Direction enum has exactly UP and DOWN members."""
+        assert set(Direction) == {Direction.UP, Direction.DOWN}
+        assert Direction.UP.value == "UP"
+        assert Direction.DOWN.value == "DOWN"
+
+    def test_confidence_boundary_zero(self) -> None:
+        """PredictionResult accepts confidence = 0.0."""
+        pred = PredictionResult(
+            ticker="AAPL",
+            prediction_date=datetime.date(2025, 1, 15),
+            direction=Direction.DOWN,
+            confidence=0.0,
+            model_version="v1",
+        )
+        assert pred.confidence == 0.0
+
+    def test_confidence_boundary_one(self) -> None:
+        """PredictionResult accepts confidence = 1.0."""
+        pred = PredictionResult(
+            ticker="AAPL",
+            prediction_date=datetime.date(2025, 1, 15),
+            direction=Direction.UP,
+            confidence=1.0,
+            model_version="v1",
+        )
+        assert pred.confidence == 1.0
+
+    def test_confidence_too_high(self) -> None:
+        """PredictionResult rejects confidence > 1.0."""
+        with pytest.raises(ValueError, match="confidence.*must be between 0.0 and 1.0"):
+            PredictionResult(
+                ticker="AAPL",
+                prediction_date=datetime.date(2025, 1, 15),
+                direction=Direction.UP,
+                confidence=1.1,
+                model_version="v1",
+            )
+
+    def test_confidence_negative(self) -> None:
+        """PredictionResult rejects negative confidence."""
+        with pytest.raises(ValueError, match="confidence.*must be between 0.0 and 1.0"):
+            PredictionResult(
+                ticker="AAPL",
+                prediction_date=datetime.date(2025, 1, 15),
+                direction=Direction.UP,
+                confidence=-0.1,
+                model_version="v1",
+            )
+
+    def test_prediction_is_frozen(self) -> None:
+        """PredictionResult is immutable (frozen dataclass)."""
+        pred = PredictionResult(
+            ticker="AAPL",
+            prediction_date=datetime.date(2025, 1, 15),
+            direction=Direction.UP,
+            confidence=0.85,
+            model_version="v1",
+        )
+        with pytest.raises(AttributeError):
+            pred.confidence = 0.5  # type: ignore[misc]

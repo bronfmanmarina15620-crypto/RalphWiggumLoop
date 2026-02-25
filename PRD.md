@@ -220,9 +220,9 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want a canonical prediction type so that downstream code has a stable contract.
 
 **Acceptance Criteria:**
-- [ ] Dataclass `PredictionResult`: ticker, prediction_date, direction (UP/DOWN), confidence (0-1), model_version
-- [ ] Unit test verifies creation
-- [ ] Typecheck passes
+- [x] Dataclass `PredictionResult`: ticker, prediction_date, direction (UP/DOWN), confidence (0-1), model_version
+- [x] Unit test verifies creation
+- [x] Typecheck passes
 
 ### US-302: Train baseline model (Logistic Regression)
 **Description:** As a developer, I want a trainable model so that the system can make predictions.

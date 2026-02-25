@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-301: Define prediction result model
+- US-302: Train baseline model (Logistic Regression)
 
 ---
 
@@ -443,4 +443,28 @@
   - NaN comparison requires special handling: math.isnan() check before pytest.approx()
   - Feature snapshots are immutable once saved — loading from DB always returns the original features regardless of later data changes
   - Phase 2 feature engineering is now fully complete (US-201 through US-207); Phase 3 (prediction model) is next
+---
+
+## Iteration 21 — US-301: Define prediction result model
+- What was done:
+  - Added Direction enum (UP/DOWN) to src/smaps/models.py
+  - Added PredictionResult frozen dataclass to src/smaps/models.py with fields: ticker, prediction_date, direction (Direction enum), confidence (float 0-1), model_version (str)
+  - __post_init__ validation: direction must be Direction enum, confidence must be 0.0..1.0
+  - Added 8 tests to tests/test_models.py in TestPredictionResult class:
+    - test_create_valid_prediction: verifies all fields
+    - test_direction_down: verifies Direction.DOWN accepted
+    - test_direction_enum_values: verifies exactly UP and DOWN members
+    - test_confidence_boundary_zero: edge case confidence=0.0
+    - test_confidence_boundary_one: edge case confidence=1.0
+    - test_confidence_too_high: rejects confidence > 1.0
+    - test_confidence_negative: rejects negative confidence
+    - test_prediction_is_frozen: confirms immutability
+  - Verified: make test (115 passed), make typecheck (success)
+- Files affected: src/smaps/models.py, tests/test_models.py, PRD.md, progress.txt
+- Learnings for next cycles:
+  - Direction uses Enum (not Literal) for runtime type safety and .value access
+  - PredictionResult follows same frozen+slots+__post_init__ pattern as OHLCVBar and SentimentScore
+  - model_version is str (e.g., "v1") — will be used by model registry in US-303
+  - First Phase 3 file — PredictionResult will be used by trainer (US-302), predictor (US-304), and persistence (US-305)
+  - US-302 (train baseline model) is next — will use PredictionResult as the output type for predictions
 ---
