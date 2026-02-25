@@ -285,6 +285,51 @@ def load_evaluation(conn: sqlite3.Connection, eval_id: int) -> EvalRecord | None
     )
 
 
+def get_latest_predictions(
+    conn: sqlite3.Connection,
+    ticker: str | None = None,
+) -> list[PredictionRecord]:
+    """Return the most recent prediction per ticker.
+
+    If *ticker* is given, return only the prediction for that ticker.
+    Results are ordered by prediction_date descending.
+    """
+    if ticker:
+        cur = conn.execute(
+            "SELECT id, ticker, prediction_date, direction, confidence, "
+            "model_version, feature_snapshot_id, created_at "
+            "FROM predictions WHERE ticker = ? "
+            "ORDER BY prediction_date DESC, id DESC LIMIT 1",
+            (ticker,),
+        )
+    else:
+        # Latest prediction per ticker via subquery
+        cur = conn.execute(
+            "SELECT p.id, p.ticker, p.prediction_date, p.direction, "
+            "p.confidence, p.model_version, p.feature_snapshot_id, p.created_at "
+            "FROM predictions p "
+            "INNER JOIN ("
+            "  SELECT ticker, MAX(id) AS max_id "
+            "  FROM predictions GROUP BY ticker"
+            ") latest ON p.id = latest.max_id "
+            "ORDER BY p.prediction_date DESC",
+        )
+    rows = cur.fetchall()
+    return [
+        PredictionRecord(
+            id=r[0],
+            ticker=r[1],
+            prediction_date=datetime.date.fromisoformat(r[2]),
+            direction=Direction(r[3]),
+            confidence=r[4],
+            model_version=r[5],
+            feature_snapshot_id=r[6],
+            created_at=r[7],
+        )
+        for r in rows
+    ]
+
+
 def save_metrics_report(report: dict[str, object], reports_dir: str = "reports") -> Path:
     """Save a metrics report as a JSON file in the reports directory.
 

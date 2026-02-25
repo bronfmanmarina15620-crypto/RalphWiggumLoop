@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-701: Add FastAPI endpoint for latest predictions
+- US-702: Add performance summary endpoint
 
 ---
 
@@ -863,4 +863,33 @@
   - `date.fromisoformat()` parses YYYY-MM-DD strings directly — no need for strptime format string
   - Phase 6 orchestrator & scheduling is now fully complete (US-601 through US-603); Phase 7 (reporting & dashboard) is next
   - US-701 (FastAPI endpoint for latest predictions) is next
+---
+
+## Iteration 37 — US-701: Add FastAPI endpoint for latest predictions
+- What was done:
+  - Added `fastapi>=0.110` and `uvicorn>=0.27` to pyproject.toml dependencies
+  - Added `httpx>=0.27` to dev dependencies (needed for FastAPI TestClient)
+  - Added [[tool.mypy.overrides]] for uvicorn.* (no py.typed marker; fastapi has py.typed so no override needed)
+  - Added `get_latest_predictions(conn, ticker=None) -> list[PredictionRecord]` to src/smaps/db.py
+    - Returns most recent prediction per ticker via MAX(id) subquery
+    - Filterable by optional ticker parameter (returns single latest for that ticker)
+    - Results ordered by prediction_date DESC
+  - Created src/smaps/api.py with FastAPI app and `GET /predictions/latest` endpoint
+    - Response: JSON array of {ticker, prediction_date, direction, confidence, model_version}
+    - Filterable by `?ticker=AAPL` query parameter
+    - Uses `check_same_thread=False` on sqlite3.connect for thread-pool compatibility
+    - Connection opened and closed per request via `_get_conn()` helper
+  - Created tests/test_api_predictions.py with 12 tests in 3 classes:
+    - TestPredictionsLatest (8 tests): returns JSON array, latest per ticker, most recent AAPL, filter by ticker, unknown ticker empty, required fields, direction UP/DOWN, confidence range
+    - TestPredictionsLatestEmptyDB (1 test): empty DB returns empty list
+    - TestGetLatestPredictionsDB (3 tests): no predictions, latest per ticker, filter by ticker
+  - Verified: make test (292 passed), make typecheck (success, 25 source files)
+- Files affected: src/smaps/api.py (new), src/smaps/db.py, tests/test_api_predictions.py (new), pyproject.toml, PRD.md, progress.txt
+- Learnings for next cycles:
+  - FastAPI's TestClient (via Starlette) runs sync endpoints in a separate thread — SQLite connections created in main thread fail with ProgrammingError unless check_same_thread=False
+  - Test fixture pattern: create file-based DB in main thread, populate it, close it; then patch _get_conn to open the same file with check_same_thread=False
+  - FastAPI has py.typed marker — no mypy override needed; uvicorn does not
+  - MAX(id) subquery pattern groups by ticker and picks the latest prediction (highest autoincrement id = most recent insert)
+  - _get_conn() helper makes the endpoint testable by providing a single patch point for DB access
+  - US-702 (performance summary endpoint) is next — will add GET /performance using compute_metrics
 ---

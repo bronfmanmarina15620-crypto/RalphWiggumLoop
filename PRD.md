@@ -387,11 +387,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a user, I want to see today's predictions so that I know the system's current signals.
 
 **Acceptance Criteria:**
-- [ ] `GET /predictions/latest` returns JSON array of latest predictions
-- [ ] Filterable by `?ticker=AAPL`
-- [ ] Response includes direction, confidence, model_version, prediction_date
-- [ ] Typecheck passes
-- [ ] Verify changes work in browser
+- [x] `GET /predictions/latest` returns JSON array of latest predictions
+- [x] Filterable by `?ticker=AAPL`
+- [x] Response includes direction, confidence, model_version, prediction_date
+- [x] Typecheck passes
+- [x] Verify changes work in browser
 
 ### US-702: Add performance summary endpoint
 **Description:** As a user, I want to see how accurate the system is so that I can gauge trust.
