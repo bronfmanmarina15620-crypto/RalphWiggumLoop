@@ -105,6 +105,21 @@ def migration_006_predictions(conn: sqlite3.Connection) -> None:
     )
 
 
+def migration_007_evaluations(conn: sqlite3.Connection) -> None:
+    """Create the evaluations table."""
+    conn.execute(
+        """\
+        CREATE TABLE IF NOT EXISTS evaluations (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            prediction_id     INTEGER NOT NULL,
+            actual_direction  TEXT    NOT NULL,  -- UP or DOWN
+            is_correct        INTEGER NOT NULL,  -- 0 or 1
+            evaluated_at      TEXT    NOT NULL   -- ISO datetime
+        )
+        """
+    )
+
+
 # Ordered list of all migrations. Index 0 = migration 1, etc.
 MIGRATIONS: list[tuple[int, Callable[[sqlite3.Connection], None]]] = [
     (1, migration_001_initial),
@@ -113,4 +128,5 @@ MIGRATIONS: list[tuple[int, Callable[[sqlite3.Connection], None]]] = [
     (4, migration_004_feature_snapshots),
     (5, migration_005_model_registry),
     (6, migration_006_predictions),
+    (7, migration_007_evaluations),
 ]

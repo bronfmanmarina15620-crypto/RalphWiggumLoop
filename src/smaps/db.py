@@ -8,9 +8,11 @@ import sqlite3
 from typing import NamedTuple
 
 from smaps.migrations import MIGRATIONS
-from smaps.models import Direction, Fundamentals, OHLCVBar, PredictionResult, SentimentScore
+from pathlib import Path
 
-SCHEMA_VERSION = 6
+from smaps.models import Direction, EvalResult, Fundamentals, OHLCVBar, PredictionResult, SentimentScore
+
+SCHEMA_VERSION = 7
 
 
 class FeatureSnapshot(NamedTuple):
@@ -233,3 +235,67 @@ def load_prediction(conn: sqlite3.Connection, prediction_id: int) -> PredictionR
         feature_snapshot_id=row[6],
         created_at=row[7],
     )
+
+
+class EvalRecord(NamedTuple):
+    """A persisted evaluation row."""
+
+    id: int | None
+    prediction_id: int
+    actual_direction: Direction
+    is_correct: bool
+    evaluated_at: str
+
+
+def save_evaluation(conn: sqlite3.Connection, result: EvalResult) -> int:
+    """Persist an evaluation result to the database. Returns the row id."""
+    cur = conn.execute(
+        """\
+        INSERT INTO evaluations
+            (prediction_id, actual_direction, is_correct, evaluated_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            result.prediction_id,
+            result.actual_direction.value,
+            int(result.is_correct),
+            result.evaluated_at.isoformat(),
+        ),
+    )
+    conn.commit()
+    return cur.lastrowid  # type: ignore[return-value]
+
+
+def load_evaluation(conn: sqlite3.Connection, eval_id: int) -> EvalRecord | None:
+    """Load an evaluation by id. Returns None if not found."""
+    cur = conn.execute(
+        "SELECT id, prediction_id, actual_direction, is_correct, evaluated_at "
+        "FROM evaluations WHERE id = ?",
+        (eval_id,),
+    )
+    row = cur.fetchone()
+    if row is None:
+        return None
+    return EvalRecord(
+        id=row[0],
+        prediction_id=row[1],
+        actual_direction=Direction(row[2]),
+        is_correct=bool(row[3]),
+        evaluated_at=row[4],
+    )
+
+
+def save_metrics_report(report: dict[str, object], reports_dir: str = "reports") -> Path:
+    """Save a metrics report as a JSON file in the reports directory.
+
+    The filename is ``metrics_<ticker>_<window_end>.json``.
+    Returns the path to the written file.
+    """
+    path = Path(reports_dir)
+    path.mkdir(parents=True, exist_ok=True)
+    ticker = report.get("ticker", "unknown")
+    window_end = report.get("window_end", "unknown")
+    filename = f"metrics_{ticker}_{window_end}.json"
+    filepath = path / filename
+    filepath.write_text(json.dumps(report, indent=2))
+    return filepath

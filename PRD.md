@@ -289,10 +289,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want evaluation results stored so that the retrain trigger can query them.
 
 **Acceptance Criteria:**
-- [ ] Migration adds `evaluations` table: id, prediction_id, actual_direction, is_correct, evaluated_at
-- [ ] `reports/` directory stores JSON metric reports
-- [ ] Unit test verifies persistence
-- [ ] Typecheck passes
+- [x] Migration adds `evaluations` table: id, prediction_id, actual_direction, is_correct, evaluated_at
+- [x] `reports/` directory stores JSON metric reports
+- [x] Unit test verifies persistence
+- [x] Typecheck passes
 
 ---
 

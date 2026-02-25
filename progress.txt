@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-403: Persist evaluation results
+- US-501: Implement retrain trigger based on accuracy degradation
 
 ---
 
@@ -631,4 +631,33 @@
   - total_predictions vs evaluated_predictions distinction is important — some predictions may not yet have outcome data
   - MetricsReport.to_dict() converts dates to ISO strings for JSON compatibility since json.dumps can't serialize datetime.date
   - US-403 (persist evaluation results) is next — will add evaluations table and reports/ directory
+---
+
+## Iteration 28 — US-403: Persist evaluation results
+- What was done:
+  - Added migration_007_evaluations to migrations.py creating `evaluations` table
+  - Columns: id (INTEGER PRIMARY KEY AUTOINCREMENT), prediction_id (INTEGER NOT NULL), actual_direction (TEXT NOT NULL), is_correct (INTEGER NOT NULL, 0/1), evaluated_at (TEXT NOT NULL, ISO datetime)
+  - Bumped SCHEMA_VERSION from 6 to 7 in db.py
+  - Added EvalRecord NamedTuple to db.py for loaded evaluation rows
+  - Added `save_evaluation(conn, result) -> int` persisting EvalResult to evaluations table, returning row id
+  - Added `load_evaluation(conn, eval_id) -> EvalRecord | None` for retrieval by id
+  - Direction stored as TEXT ("UP"/"DOWN") via Direction.value; is_correct stored as INTEGER (0/1) via int(bool)
+  - Added `save_metrics_report(report, reports_dir) -> Path` writing JSON metric reports to reports/ directory
+  - Filename format: metrics_<ticker>_<window_end>.json
+  - Creates reports/ directory with mkdir(parents=True, exist_ok=True)
+  - Imported Path from pathlib and EvalResult from models into db.py
+  - Created tests/test_evaluation_persistence.py with 13 tests in 3 classes:
+    - TestSaveEvaluation (4 tests): autoincrement id, sequential ids, correct evaluation, incorrect evaluation
+    - TestLoadEvaluation (5 tests): round-trip (core AC), nonexistent returns None, direction UP round-trip, direction DOWN round-trip, evaluated_at is ISO datetime
+    - TestSaveMetricsReport (4 tests): creates report file with correct name, valid JSON content, creates directory if missing, overwrites existing report
+  - Verified: make test (192 passed), make typecheck (success)
+- Files affected: src/smaps/migrations.py, src/smaps/db.py, tests/test_evaluation_persistence.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - SQLite has no native boolean type; store as INTEGER 0/1, convert back with bool(row_value)
+  - EvalRecord follows same NamedTuple pattern as PredictionRecord and FeatureSnapshot
+  - save_metrics_report takes a dict (from MetricsReport.to_dict()) not the dataclass itself — keeps DB and file persistence decoupled
+  - Path.write_text(json.dumps(..., indent=2)) is the simplest way to write formatted JSON files
+  - Migration pattern remains consistent: add function, add to MIGRATIONS list, bump SCHEMA_VERSION
+  - Phase 4 evaluator is now fully complete (US-401 through US-403); Phase 5 (self-learning loop) is next
+  - US-501 (retrain trigger based on accuracy degradation) is next — will use compute_metrics to check rolling accuracy
 ---
