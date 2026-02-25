@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-107: Add fundamentals table and persistence
+- US-108: Add multi-ticker ingestion orchestrator
 
 ---
 
@@ -218,4 +218,27 @@
   - Fundamentals uses date=datetime.date.today() since yfinance .info returns current snapshot, not historical
   - Mock yf.Ticker at module level: @patch("smaps.collectors.fundamentals.yf.Ticker")
   - Fundamentals dataclass uses Optional[float] (float | None) for all metric fields since any can be unavailable
+---
+
+## Iteration 12 — US-107: Add fundamentals table and persistence
+- What was done:
+  - Added migration_003_fundamentals to migrations.py creating `fundamentals_daily` table with PK (ticker, date)
+  - Columns: ticker (TEXT), date (TEXT), pe_ratio (REAL), market_cap (REAL), eps (REAL), revenue (REAL)
+  - Bumped SCHEMA_VERSION from 2 to 3 in db.py
+  - Added `upsert_fundamentals(conn, rows) -> int` function to db.py using INSERT OR REPLACE
+  - Imported Fundamentals into db.py alongside OHLCVBar and SentimentScore
+  - Created tests/test_fundamentals_persistence.py with 5 tests:
+    - test_upsert_inserts_fundamentals: verifies single row round-trip with all fields
+    - test_upsert_same_row_twice_yields_single_row: core AC — same PK twice → 1 row, second value wins
+    - test_upsert_multiple_fundamentals: verifies batch insert of 3 rows
+    - test_upsert_with_none_fields: verifies None/Optional fields stored as NULL
+    - test_upsert_empty_list: edge case — empty list succeeds
+  - Verified: make test (52 passed), make typecheck (success)
+- Files affected: src/smaps/migrations.py, src/smaps/db.py, tests/test_fundamentals_persistence.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - Fundamentals PK is (ticker, date) — simpler than sentiment which has (ticker, date, source) composite
+  - All metric columns are nullable REAL since Fundamentals fields are Optional[float]
+  - None values in Python pass through to SQLite as NULL via executemany without special handling
+  - Migration pattern remains consistent: add function, add to MIGRATIONS list, bump SCHEMA_VERSION
+  - Phase 1 data collection is now complete (US-101 through US-107); US-108 orchestrator is next
 ---

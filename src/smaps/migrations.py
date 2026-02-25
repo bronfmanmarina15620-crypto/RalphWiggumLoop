@@ -39,8 +39,26 @@ def migration_002_sentiment(conn: sqlite3.Connection) -> None:
     )
 
 
+def migration_003_fundamentals(conn: sqlite3.Connection) -> None:
+    """Create the fundamentals_daily table."""
+    conn.execute(
+        """\
+        CREATE TABLE IF NOT EXISTS fundamentals_daily (
+            ticker      TEXT    NOT NULL,
+            date        TEXT    NOT NULL,  -- YYYY-MM-DD
+            pe_ratio    REAL,
+            market_cap  REAL,
+            eps         REAL,
+            revenue     REAL,
+            PRIMARY KEY (ticker, date)
+        )
+        """
+    )
+
+
 # Ordered list of all migrations. Index 0 = migration 1, etc.
 MIGRATIONS: list[tuple[int, Callable[[sqlite3.Connection], None]]] = [
     (1, migration_001_initial),
     (2, migration_002_sentiment),
+    (3, migration_003_fundamentals),
 ]

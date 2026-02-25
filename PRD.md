@@ -133,10 +133,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want fundamentals stored so that features can reference them.
 
 **Acceptance Criteria:**
-- [ ] Migration adds `fundamentals_daily` table: ticker, date, pe_ratio, market_cap, eps, revenue
-- [ ] PK (ticker, date); upsert logic
-- [ ] Unit test verifies round-trip persistence
-- [ ] Typecheck passes
+- [x] Migration adds `fundamentals_daily` table: ticker, date, pe_ratio, market_cap, eps, revenue
+- [x] PK (ticker, date); upsert logic
+- [x] Unit test verifies round-trip persistence
+- [x] Typecheck passes
 
 ### US-108: Add multi-ticker ingestion orchestrator
 **Description:** As a developer, I want all tickers ingested in one call so that the pipeline is simple.
