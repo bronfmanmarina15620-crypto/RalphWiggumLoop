@@ -64,19 +64,31 @@ def performance() -> list[dict[str, object]]:
 
     Computes rolling metrics over the last 90 days for every ticker that
     has at least one prediction.  The window is anchored to the most recent
-    prediction date for each ticker so that historical data is visible even
-    when the server is started long after the last pipeline run.
+    *evaluated* prediction date when evaluations exist, otherwise falls
+    back to the most recent prediction date.  This ensures the performance
+    section shows meaningful data even when there is a gap between old
+    evaluations and new (unevaluated) predictions.
     """
     conn = _get_conn()
     try:
+        # Prefer anchoring to the latest evaluated prediction date
         cur = conn.execute(
+            "SELECT p.ticker, MAX(p.prediction_date) "
+            "FROM predictions p "
+            "INNER JOIN evaluations e ON e.prediction_id = p.id "
+            "GROUP BY p.ticker"
+        )
+        eval_anchors = {row[0]: row[1] for row in cur.fetchall()}
+
+        # Get all tickers with predictions
+        cur2 = conn.execute(
             "SELECT ticker, MAX(prediction_date) "
             "FROM predictions GROUP BY ticker ORDER BY ticker"
         )
-        rows = cur.fetchall()
         results: list[dict[str, object]] = []
-        for ticker, max_date_str in rows:
-            as_of = datetime.date.fromisoformat(max_date_str)
+        for ticker, max_date_str in cur2.fetchall():
+            anchor = eval_anchors.get(ticker, max_date_str)
+            as_of = datetime.date.fromisoformat(anchor)
             results.append(
                 compute_metrics(conn, ticker, window_days=90, as_of_date=as_of).to_dict()
             )

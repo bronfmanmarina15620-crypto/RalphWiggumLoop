@@ -475,6 +475,16 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 - [x] Typecheck passes
 - [ ] Verify changes work in browser
 
+### US-808: Anchor performance window to latest evaluated date
+**Description:** As a user, I want the performance metrics to anchor to the most recent evaluated prediction date so that accuracy data is meaningful even when there is a gap between old evaluations and new predictions.
+
+**Acceptance Criteria:**
+- [x] `/performance` endpoint anchors window to latest evaluated prediction date per ticker
+- [x] Falls back to latest prediction date if no evaluations exist
+- [x] Dashboard shows real accuracy data instead of 0% when evaluations are outside the default window
+- [x] Typecheck passes
+- [ ] Verify changes work in browser
+
 ### US-805: Fix training data utilization gap
 **Description:** As a developer, I want all tickers to train on all available historical data so that no data is wasted due to ingestion timing.
 
