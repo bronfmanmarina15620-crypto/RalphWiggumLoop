@@ -94,3 +94,34 @@ class EvalResult:
     actual_direction: Direction
     is_correct: bool
     evaluated_at: datetime.datetime
+
+
+@dataclass(frozen=True, slots=True)
+class MetricsReport:
+    """Rolling accuracy metrics for a ticker over a date window."""
+
+    ticker: str
+    window_start: datetime.date
+    window_end: datetime.date
+    accuracy: float
+    precision_up: float
+    recall_up: float
+    precision_down: float
+    recall_down: float
+    total_predictions: int
+    evaluated_predictions: int
+
+    def to_dict(self) -> dict[str, object]:
+        """Serialize to a JSON-compatible dict."""
+        return {
+            "ticker": self.ticker,
+            "window_start": self.window_start.isoformat(),
+            "window_end": self.window_end.isoformat(),
+            "accuracy": self.accuracy,
+            "precision_up": self.precision_up,
+            "recall_up": self.recall_up,
+            "precision_down": self.precision_down,
+            "recall_down": self.recall_down,
+            "total_predictions": self.total_predictions,
+            "evaluated_predictions": self.evaluated_predictions,
+        }

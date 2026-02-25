@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-402: Compute rolling accuracy metrics
+- US-403: Persist evaluation results
 
 ---
 
@@ -608,4 +608,27 @@
   - No migration needed for US-401 — evaluations table comes in US-403
   - evaluate_prediction takes conn + prediction_id — loads prediction from DB, queries ohlcv_daily for price comparison
   - US-402 (compute rolling accuracy metrics) is next — will aggregate EvalResult data for accuracy/precision/recall
+---
+
+## Iteration 27 — US-402: Compute rolling accuracy metrics
+- What was done:
+  - Added MetricsReport frozen dataclass to src/smaps/models.py with fields: ticker, window_start, window_end, accuracy, precision_up, recall_up, precision_down, recall_down, total_predictions, evaluated_predictions
+  - Added to_dict() method on MetricsReport for JSON serialization (dates as ISO strings)
+  - Added `compute_metrics(conn, ticker, window_days=90, as_of_date=None) -> MetricsReport` to src/smaps/evaluator.py
+  - Queries predictions table within date window, evaluates each via evaluate_prediction, builds confusion matrix
+  - Computes accuracy, precision, and recall per UP/DOWN class from TP/FP/FN counts
+  - Gracefully skips unevaluable predictions (missing price data) — counted in total_predictions but not evaluated_predictions
+  - Zero-division cases return 0.0 (no predictions, no predictions of a given class)
+  - Created tests/test_metrics.py with 13 tests in 2 classes:
+    - TestComputeMetrics (10 tests): returns MetricsReport, perfect accuracy, zero accuracy, mixed accuracy with exact metric verification, precision/recall asymmetry, no predictions, window filters old predictions, ticker isolation, skips unevaluable, window start/end boundaries
+    - TestMetricsReportSerialization (3 tests): to_dict returns dict, JSON serializable, dates as ISO strings
+  - Verified: make test (179 passed), make typecheck (success)
+- Files affected: src/smaps/models.py, src/smaps/evaluator.py, tests/test_metrics.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - Confusion matrix for binary UP/DOWN: TP_up/FP_up/FN_up/TP_down with cross-class equivalences (FP_down = FN_up, FN_down = FP_up)
+  - as_of_date optional parameter enables deterministic testing without relying on today's date
+  - evaluate_prediction raises ValueError for missing price data; compute_metrics catches and skips gracefully
+  - total_predictions vs evaluated_predictions distinction is important — some predictions may not yet have outcome data
+  - MetricsReport.to_dict() converts dates to ISO strings for JSON compatibility since json.dumps can't serialize datetime.date
+  - US-403 (persist evaluation results) is next — will add evaluations table and reports/ directory
 ---

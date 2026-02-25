@@ -279,11 +279,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want aggregate accuracy stats so that model health is monitorable.
 
 **Acceptance Criteria:**
-- [ ] `compute_metrics(ticker, window_days=90) -> MetricsReport`
-- [ ] Includes: accuracy, precision, recall (per UP/DOWN class), total predictions
-- [ ] Output serializable as JSON
-- [ ] Unit test with known outcomes verifies metric calculation
-- [ ] Typecheck passes
+- [x] `compute_metrics(ticker, window_days=90) -> MetricsReport`
+- [x] Includes: accuracy, precision, recall (per UP/DOWN class), total predictions
+- [x] Output serializable as JSON
+- [x] Unit test with known outcomes verifies metric calculation
+- [x] Typecheck passes
 
 ### US-403: Persist evaluation results
 **Description:** As a developer, I want evaluation results stored so that the retrain trigger can query them.

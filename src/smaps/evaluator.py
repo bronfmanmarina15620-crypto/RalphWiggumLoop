@@ -6,7 +6,7 @@ import datetime
 import sqlite3
 
 from smaps.db import load_prediction
-from smaps.models import Direction, EvalResult
+from smaps.models import Direction, EvalResult, MetricsReport
 
 
 def _find_next_trading_day_close(
@@ -107,4 +107,82 @@ def evaluate_prediction(
         actual_direction=actual_direction,
         is_correct=is_correct,
         evaluated_at=evaluated_at,
+    )
+
+
+def compute_metrics(
+    conn: sqlite3.Connection,
+    ticker: str,
+    window_days: int = 90,
+    as_of_date: datetime.date | None = None,
+) -> MetricsReport:
+    """Compute rolling accuracy, precision, and recall over a date window.
+
+    Args:
+        conn: SQLite connection with schema already applied.
+        ticker: The stock ticker to compute metrics for.
+        window_days: Number of days to look back from *as_of_date*.
+        as_of_date: End of the window (defaults to today).
+
+    Returns:
+        A MetricsReport with accuracy, precision, and recall per UP/DOWN class.
+    """
+    end_date = as_of_date or datetime.date.today()
+    start_date = end_date - datetime.timedelta(days=window_days)
+
+    # Get all prediction IDs and directions in the window
+    cur = conn.execute(
+        "SELECT id, direction FROM predictions "
+        "WHERE ticker = ? AND prediction_date >= ? AND prediction_date <= ? "
+        "ORDER BY prediction_date",
+        (ticker, start_date.isoformat(), end_date.isoformat()),
+    )
+    predictions = [(row[0], Direction(row[1])) for row in cur.fetchall()]
+    total_predictions = len(predictions)
+
+    # Evaluate each prediction and build confusion matrix
+    tp_up = 0
+    fp_up = 0
+    fn_up = 0
+    tp_down = 0
+    evaluated = 0
+
+    for pred_id, pred_direction in predictions:
+        try:
+            result = evaluate_prediction(conn, pred_id)
+        except ValueError:
+            continue
+        evaluated += 1
+
+        if pred_direction == Direction.UP:
+            if result.actual_direction == Direction.UP:
+                tp_up += 1
+            else:
+                fp_up += 1
+        else:
+            if result.actual_direction == Direction.DOWN:
+                tp_down += 1
+            else:
+                fn_up += 1
+
+    # Compute metrics (0.0 for empty denominators)
+    accuracy = (tp_up + tp_down) / evaluated if evaluated > 0 else 0.0
+    precision_up = tp_up / (tp_up + fp_up) if (tp_up + fp_up) > 0 else 0.0
+    recall_up = tp_up / (tp_up + fn_up) if (tp_up + fn_up) > 0 else 0.0
+    # FP_down = FN_up (predicted DOWN, actual UP)
+    precision_down = tp_down / (tp_down + fn_up) if (tp_down + fn_up) > 0 else 0.0
+    # FN_down = FP_up (predicted UP, actual DOWN)
+    recall_down = tp_down / (tp_down + fp_up) if (tp_down + fp_up) > 0 else 0.0
+
+    return MetricsReport(
+        ticker=ticker,
+        window_start=start_date,
+        window_end=end_date,
+        accuracy=accuracy,
+        precision_up=precision_up,
+        recall_up=recall_up,
+        precision_down=precision_down,
+        recall_down=recall_down,
+        total_predictions=total_predictions,
+        evaluated_predictions=evaluated,
     )
