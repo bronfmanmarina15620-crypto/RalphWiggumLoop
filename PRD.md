@@ -173,10 +173,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want sentiment-derived features so that the model captures market mood.
 
 **Acceptance Criteria:**
-- [ ] Computes: latest_sentiment_score, sentiment_ma_5d (5-day rolling average)
-- [ ] Gracefully returns 0.0 if no sentiment data available
-- [ ] Unit test verifies output
-- [ ] Typecheck passes
+- [x] Computes: latest_sentiment_score, sentiment_ma_5d (5-day rolling average)
+- [x] Gracefully returns 0.0 if no sentiment data available
+- [x] Unit test verifies output
+- [x] Typecheck passes
 
 ### US-204: Implement fundamental features
 **Description:** As a developer, I want fundamental-derived features so that the model captures valuation context.

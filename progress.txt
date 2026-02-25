@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-203: Implement sentiment features
+- US-204: Implement fundamental features
 
 ---
 
@@ -316,4 +316,30 @@
   - _return_n() is reusable for both price returns and volume change (same formula)
   - RSI edge cases: all gains → 100.0 (avg_loss=0 guard), all losses → 0.0 (natural from formula)
   - volatility_20d uses sample stdev (N-1 denominator) of daily returns over last 20 bars
+---
+
+## Iteration 16 — US-203: Implement sentiment features
+- What was done:
+  - Created src/smaps/features/sentiment.py with SentimentFeatures class implementing FeaturePipeline protocol
+  - Takes sqlite3.Connection in constructor; queries sentiment_daily table filtered by date <= as_of_date
+  - Computes 2 features: latest_sentiment_score, sentiment_ma_5d (5-day rolling average)
+  - Gracefully returns 0.0 for both features when no sentiment data available
+  - _rolling_avg() helper averages last N scores, or all available if fewer than N
+  - No-leakage: SQL WHERE clause restricts to date <= as_of_date.isoformat()
+  - Created tests/test_features_sentiment.py with 7 tests:
+    - test_output_keys_and_types: verifies both keys returned as floats
+    - test_latest_sentiment_score: verifies most recent score is returned
+    - test_latest_sentiment_score_respects_as_of_date: future scores excluded
+    - test_sentiment_ma_5d_with_enough_data: verifies 5-day rolling average
+    - test_sentiment_ma_5d_with_fewer_than_5: averages all available when < 5
+    - test_no_data_returns_zeros: both features return 0.0 for unknown ticker
+    - test_no_data_for_ticker_but_other_tickers_exist: isolation between tickers
+  - Verified: make test (78 passed), make typecheck (success)
+- Files affected: src/smaps/features/sentiment.py (new), tests/test_features_sentiment.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - SentimentFeatures follows exact same pattern as TechnicalFeatures: conn in __init__, SQL query with date <= as_of_date
+  - sentiment_daily table may have multiple sources per (ticker, date); SQL query returns all rows — this means scores list may include multiple scores per day
+  - 0.0 is the graceful fallback for missing sentiment data (not NaN like technical features) since 0.0 represents neutral sentiment
+  - _rolling_avg uses values[-window:] slicing which safely returns fewer items when len < window
+  - US-204 (fundamental features) will follow the same pattern with fundamentals_daily table
 ---
