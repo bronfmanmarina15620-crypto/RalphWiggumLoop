@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-602: Add GitHub Actions daily schedule
+- US-603: Add CLI entry point
 
 ---
 
@@ -820,4 +820,24 @@
   - Mock side_effect with call_order list is a clean way to verify step execution sequence
   - get_logger with run_id embeds the run_id in the handler format, not in the message content
   - US-602 (GitHub Actions daily schedule) is next
+---
+
+## Iteration 35 — US-602: Add GitHub Actions daily schedule
+- What was done:
+  - Created .github/workflows/daily.yml with cron schedule and workflow_dispatch trigger
+  - Cron: `0 22 * * 1-5` — runs weekdays (Mon–Fri) at 22:00 UTC, after US market close
+  - workflow_dispatch: enables manual trigger from GitHub Actions UI
+  - Job steps: checkout → setup-python 3.11 → pip install -e . → python -m smaps.pipeline
+  - Added concurrency group `daily-pipeline` with cancel-in-progress: false (pipeline should complete, not be cancelled)
+  - Added `if __name__ == "__main__"` block to src/smaps/pipeline.py to support `python -m smaps.pipeline`
+  - The __main__ block reads tickers and db_path from Settings (env-var-configurable), uses today's date
+  - Modeled workflow after existing scaffold_verify.yml for consistency (same checkout, setup-python, shell patterns)
+  - Verified: make test (267 passed), make typecheck (success, 24 source files)
+- Files affected: .github/workflows/daily.yml (new), src/smaps/pipeline.py, PRD.md, progress.txt
+- Learnings for next cycles:
+  - Cron `1-5` in the day-of-week field = Monday through Friday (0=Sun, 1=Mon, ..., 5=Fri)
+  - `python -m smaps.pipeline` requires either a __main__.py inside a pipeline package or an `if __name__ == "__main__"` block in pipeline.py
+  - cancel-in-progress: false is correct for pipeline workflows (should not abort mid-run if another triggers)
+  - The __main__ block uses Settings() for tickers/db_path, making the workflow configurable via GitHub Actions env vars (SMAPS_TICKERS, SMAPS_DB_PATH)
+  - US-603 (CLI entry point with --tickers, --date, --dry-run, --help) is next — will extend the __main__ block with argparse
 ---

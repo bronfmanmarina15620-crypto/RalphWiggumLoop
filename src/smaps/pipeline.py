@@ -204,3 +204,17 @@ def _evaluate_pending(conn: sqlite3.Connection, ticker: str) -> int:
             pass  # Missing price data — can't evaluate yet
 
     return evaluated
+
+
+if __name__ == "__main__":
+    import datetime as _dt
+
+    from smaps.config import Settings
+
+    _settings = Settings()
+    _date = _dt.date.today()
+    run_pipeline(
+        tickers=_settings.tickers,
+        date=_date,
+        db_path=_settings.db_path,
+    )

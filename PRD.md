@@ -365,10 +365,10 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want the pipeline to run automatically every trading day.
 
 **Acceptance Criteria:**
-- [ ] `.github/workflows/daily.yml` runs pipeline on cron (weekdays 22:00 UTC)
-- [ ] Installs dependencies, runs `python -m smaps.pipeline`
-- [ ] Manual trigger via `workflow_dispatch` supported
-- [ ] Typecheck passes
+- [x] `.github/workflows/daily.yml` runs pipeline on cron (weekdays 22:00 UTC)
+- [x] Installs dependencies, runs `python -m smaps.pipeline`
+- [x] Manual trigger via `workflow_dispatch` supported
+- [x] Typecheck passes
 
 ### US-603: Add CLI entry point
 **Description:** As a developer, I want a CLI so that I can run the pipeline manually.
