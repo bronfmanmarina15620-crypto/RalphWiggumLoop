@@ -31,15 +31,16 @@ def _get_conn() -> sqlite3.Connection:
 @app.get("/predictions/latest")
 def predictions_latest(
     ticker: str | None = Query(default=None, description="Filter by ticker symbol"),
+    direction: str | None = Query(default=None, description="Filter by direction (UP or DOWN)"),
 ) -> list[dict[str, object]]:
     """Return the latest prediction for each ticker.
 
-    Optionally filter by ``?ticker=AAPL``.
+    Optionally filter by ``?ticker=AAPL`` and/or ``?direction=UP``.
     """
     conn = _get_conn()
     try:
         records = get_latest_predictions(conn, ticker=ticker)
-        return [
+        results: list[dict[str, object]] = [
             {
                 "ticker": r.ticker,
                 "prediction_date": r.prediction_date.isoformat(),
@@ -49,6 +50,10 @@ def predictions_latest(
             }
             for r in records
         ]
+        if direction:
+            d = direction.upper()
+            results = [r for r in results if r["direction"] == d]
+        return results
     finally:
         conn.close()
 
@@ -203,7 +208,10 @@ _DASHBOARD_HTML = """\
 <strong>\u05db\u05d9\u05d5\u05d5\u05df</strong> \u2014 \u05d4\u05d0\u05dd \u05d4\u05de\u05d5\u05d3\u05dc \u05e6\u05d5\u05e4\u05d4 \u05e2\u05dc\u05d9\u05d9\u05d4 \u05d0\u05d5 \u05d9\u05e8\u05d9\u05d3\u05d4 \u05d1\u05de\u05d7\u05d9\u05e8 \u05d4\u05de\u05e0\u05d9\u05d4 \u05dc\u05d9\u05d5\u05dd \u05d4\u05de\u05e1\u05d7\u05e8 \u05d4\u05d1\u05d0.
 <strong>\u05d1\u05d9\u05d8\u05d7\u05d5\u05df</strong> \u2014 \u05db\u05de\u05d4 \u05d4\u05de\u05d5\u05d3\u05dc \u05d1\u05d8\u05d5\u05d7 \u05d1\u05ea\u05d7\u05d6\u05d9\u05ea \u05e9\u05dc\u05d5 (100% = \u05d1\u05d8\u05d5\u05d7 \u05dc\u05d7\u05dc\u05d5\u05d8\u05d9\u05df, 50% = \u05db\u05de\u05d5 \u05d4\u05d8\u05dc\u05ea \u05de\u05d8\u05d1\u05e2).
 </div>
-<div id="predictions-table"><p class="empty">\u05d8\u05d5\u05e2\u05df...</p></div>
+<h3>\u05e6\u05e4\u05d5\u05d9\u05d5\u05ea \u05dc\u05e2\u05dc\u05d5\u05ea</h3>
+<div id="predictions-up"><p class="empty">\u05d8\u05d5\u05e2\u05df...</p></div>
+<h3>\u05e6\u05e4\u05d5\u05d9\u05d5\u05ea \u05dc\u05e8\u05d3\u05ea</h3>
+<div id="predictions-down"><p class="empty">\u05d8\u05d5\u05e2\u05df...</p></div>
 
 <h2>\u05d3\u05d9\u05d5\u05e7 (90 \u05d9\u05d5\u05dd \u05d0\u05d7\u05e8\u05d5\u05e0\u05d9\u05dd)</h2>
 <div class="section-info">
@@ -253,24 +261,31 @@ _DASHBOARD_HTML = """\
     return fetch(url).then(function(r) { return r.json(); });
   }
 
-  function renderPredictions(data) {
-    var container = document.getElementById("predictions-table");
-    if (!data.length) {
-      container.innerHTML = '<p class="empty">\u05d0\u05d9\u05df \u05ea\u05d7\u05d6\u05d9\u05d5\u05ea \u05d6\u05de\u05d9\u05e0\u05d5\u05ea.</p>';
+  function renderPredictionTable(container, items, emptyMsg) {
+    if (!items.length) {
+      container.innerHTML = '<p class="empty">' + emptyMsg + '</p>';
       return;
     }
-    var html = "<table><tr><th>\u05e1\u05d9\u05de\u05d5\u05dc</th><th>\u05ea\u05d0\u05e8\u05d9\u05da</th><th>\u05db\u05d9\u05d5\u05d5\u05df</th>" +
+    var html = "<table><tr><th>\u05e1\u05d9\u05de\u05d5\u05dc</th><th>\u05ea\u05d0\u05e8\u05d9\u05da</th>" +
                "<th>\u05d1\u05d9\u05d8\u05d7\u05d5\u05df</th><th>\u05de\u05d5\u05d3\u05dc</th></tr>";
-    data.forEach(function(p) {
-      var cls = p.direction === "UP" ? "up" : "down";
-      var dir = p.direction === "UP" ? "\u05e2\u05dc\u05d9\u05d9\u05d4" : "\u05d9\u05e8\u05d9\u05d3\u05d4";
+    items.forEach(function(p) {
       html += "<tr><td>" + p.ticker + "</td><td>" + p.prediction_date +
-              "</td><td class='" + cls + "'>" + dir +
               "</td><td>" + (p.confidence * 100).toFixed(1) + "%</td><td>" +
               p.model_version + "</td></tr>";
     });
     html += "</table>";
     container.innerHTML = html;
+  }
+
+  function renderPredictions(data) {
+    var upItems = data.filter(function(p) { return p.direction === "UP"; });
+    var downItems = data.filter(function(p) { return p.direction === "DOWN"; });
+    renderPredictionTable(
+      document.getElementById("predictions-up"), upItems,
+      "\u05d0\u05d9\u05df \u05ea\u05d7\u05d6\u05d9\u05d5\u05ea \u05e2\u05dc\u05d9\u05d9\u05d4.");
+    renderPredictionTable(
+      document.getElementById("predictions-down"), downItems,
+      "\u05d0\u05d9\u05df \u05ea\u05d7\u05d6\u05d9\u05d5\u05ea \u05d9\u05e8\u05d9\u05d3\u05d4.");
   }
 
   function renderPerformance(data) {

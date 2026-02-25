@@ -108,7 +108,8 @@ class TestDashboardEndpoint:
         with _make_client(empty_db_path):
             client = TestClient(app)
             resp = client.get("/dashboard")
-        assert 'id="predictions-table"' in resp.text
+        assert 'id="predictions-up"' in resp.text
+        assert 'id="predictions-down"' in resp.text
 
     def test_contains_accuracy_section(self, empty_db_path):
         with _make_client(empty_db_path):

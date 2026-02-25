@@ -465,6 +465,16 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 - [x] Typecheck passes
 - [ ] Verify changes work in browser
 
+### US-807: Split predictions into separate UP and DOWN tables
+**Description:** As a user, I want the dashboard to show two separate prediction tables (UP and DOWN), each sorted by confidence from highest to lowest, so that I can quickly see the strongest bullish and bearish signals.
+
+**Acceptance Criteria:**
+- [x] Dashboard shows two separate tables: "צפויות לעלות" (UP) and "צפויות לרדת" (DOWN)
+- [x] Each table sorted by confidence descending
+- [x] `/predictions/latest` endpoint supports `?direction=UP` and `?direction=DOWN` filters
+- [x] Typecheck passes
+- [ ] Verify changes work in browser
+
 ### US-805: Fix training data utilization gap
 **Description:** As a developer, I want all tickers to train on all available historical data so that no data is wasted due to ingestion timing.
 
