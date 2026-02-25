@@ -355,11 +355,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want one entry point that runs the full daily cycle.
 
 **Acceptance Criteria:**
-- [ ] `run_pipeline(tickers, date)` chains: ingest → features → predict → evaluate → retrain-if-needed
-- [ ] Each step logged with timing and run_id
-- [ ] Failure in one ticker does not block others
-- [ ] Unit test with mocked components verifies call sequence
-- [ ] Typecheck passes
+- [x] `run_pipeline(tickers, date)` chains: ingest → features → predict → evaluate → retrain-if-needed
+- [x] Each step logged with timing and run_id
+- [x] Failure in one ticker does not block others
+- [x] Unit test with mocked components verifies call sequence
+- [x] Typecheck passes
 
 ### US-602: Add GitHub Actions daily schedule
 **Description:** As a developer, I want the pipeline to run automatically every trading day.

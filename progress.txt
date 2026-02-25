@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-601: Implement daily pipeline orchestrator
+- US-602: Add GitHub Actions daily schedule
 
 ---
 
@@ -786,4 +786,38 @@
   - p_threshold=0.0 ensures nothing is flagged as drifted (p-values are always ≥ 0)
   - Phase 5 self-learning loop is now fully complete (US-501 through US-505); Phase 6 (orchestrator & scheduling) is next
   - US-601 (implement daily pipeline orchestrator) is next
+---
+
+## Iteration 34 — US-601: Implement daily pipeline orchestrator
+- What was done:
+  - Created src/smaps/pipeline.py with `run_pipeline(tickers, date, db_path, models_dir, lookback_days)` function
+  - Chains 4 steps per ticker: ingest → predict → evaluate → retrain-if-needed
+  - Each step wrapped in try/except so failure in one step does not prevent subsequent steps
+  - For-loop over tickers provides ticker-level isolation (failure in one ticker doesn't block others)
+  - Structured logging with run_id (uuid hex[:8]) via get_logger("smaps.pipeline", run_id=run_id)
+  - Each step logged with timing via time.monotonic() (step=ingest/predict/evaluate/retrain ticker=... elapsed=...)
+  - Pipeline start/complete events logged with ticker list and total elapsed
+  - Ingest step: calls fetch_daily_bars, fetch_sentiment, fetch_fundamentals and persists via upsert functions
+  - Predict step: calls predict() then save_prediction() to persist
+  - Evaluate step: _evaluate_pending() queries for unevaluated predictions via LEFT JOIN, evaluates each with evaluate_prediction(), saves with save_evaluation()
+  - Retrain step: calls should_retrain() → if True, calls retrain_with_validation() → reports "retrained", "rollback", or "not_needed"
+  - Returns result dict with run_id, date, per-ticker step statuses, and elapsed time
+  - Created tests/test_pipeline.py with 14 tests in 5 classes:
+    - TestRunPipeline (3 tests): calls all steps, verifies call sequence order, runs all tickers
+    - TestFailureIsolation (2 tests): error in one ticker doesn't block others, predict error doesn't block evaluate
+    - TestResultStructure (4 tests): run_id present, date and elapsed present, all step keys present, empty ticker list
+    - TestRetrainIntegration (3 tests): retrain triggered, rollback on OOS failure, retrain not needed
+    - TestPipelineLogging (2 tests): logs start/complete, logs each step with elapsed
+  - All tests use @patch decorators to mock external dependencies (collectors, predict, should_retrain)
+  - Verified: make test (267 passed), make typecheck (success, 24 source files)
+- Files affected: src/smaps/pipeline.py (new), tests/test_pipeline.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - run_pipeline creates its own DB connection via get_connection(db_path) — avoids passing conn through the public API
+  - _evaluate_pending uses LEFT JOIN to find predictions without evaluations — efficient single query
+  - Each step is independent within a ticker — ingest failure doesn't skip predict (old data may suffice)
+  - uuid.uuid4().hex[:8] gives a compact 8-char hex run_id for log correlation
+  - @patch stack order: outermost decorator = last function parameter (reversed)
+  - Mock side_effect with call_order list is a clean way to verify step execution sequence
+  - get_logger with run_id embeds the run_id in the handler format, not in the message content
+  - US-602 (GitHub Actions daily schedule) is next
 ---
