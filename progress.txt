@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-303: Persist model artifacts with versioning
+- US-304: Implement daily prediction function
 
 ---
 
@@ -500,4 +500,34 @@
   - fillna(0.0) is a simple but effective strategy for NaN features in LogisticRegression
   - Time-based split uses simple iloc slicing: [:split_idx] for train, [split_idx:] for test — no shuffle
   - US-303 (persist model artifacts) is next — will use joblib to serialize TrainedModel.pipeline
+---
+
+## Iteration 23 — US-303: Persist model artifacts with versioning
+- What was done:
+  - Added migration_005_model_registry to migrations.py creating `model_registry` table
+  - Columns: id (INTEGER PRIMARY KEY AUTOINCREMENT), ticker (TEXT), version (INTEGER), trained_at (TEXT ISO datetime), metrics_json (TEXT), artifact_path (TEXT)
+  - Bumped SCHEMA_VERSION from 4 to 5 in db.py
+  - Created src/smaps/model/registry.py with:
+    - ModelRecord NamedTuple for registry rows
+    - `save_model(conn, ticker, model, models_dir)` → saves TrainedModel via joblib, inserts registry row, auto-increments version per ticker
+    - `load_latest_model(conn, ticker)` → queries registry for latest version, loads joblib file, returns (TrainedModel, ModelRecord) or None
+    - `_next_version()` helper queries MAX(version) for ticker
+  - Model saved to `models/<ticker>_v<N>.joblib` format as specified in AC
+  - Added joblib>=1.3 to pyproject.toml dependencies
+  - Added [[tool.mypy.overrides]] for joblib.* (no py.typed marker)
+  - Created tests/test_model_registry.py with 14 tests in 3 classes:
+    - TestSaveModel (7 tests): saves joblib file, artifact path format, returns ModelRecord, metrics stored, version auto-increments, tickers independent, creates dir if missing
+    - TestLoadLatestModel (5 tests): round-trip save/load, loaded model produces predictions, loads latest version, no model returns None, missing artifact returns None
+    - TestModelRegistry (2 tests): registry row persisted, trained_at is ISO datetime with timezone
+  - Verified: make test (138 passed), make typecheck (success)
+- Files affected: src/smaps/migrations.py, src/smaps/db.py, src/smaps/model/registry.py (new), tests/test_model_registry.py (new), pyproject.toml, PRD.md, progress.txt
+- Learnings for next cycles:
+  - joblib.dump/load serializes entire TrainedModel dataclass (not just the sklearn pipeline) — preserves feature_names and metrics
+  - joblib has no py.typed marker; need mypy overrides with ignore_missing_imports = true
+  - Version auto-increment uses MAX(version) query per ticker — each ticker has independent version sequences
+  - models_dir is created with mkdir(parents=True, exist_ok=True) to handle first-time setup
+  - load_latest_model returns None for both "no registry entry" and "artifact file missing" cases
+  - trained_at stored as UTC ISO datetime via datetime.now(tz=datetime.timezone.utc)
+  - cursor.lastrowid gives AUTOINCREMENT id after INSERT (same pattern as feature_snapshots)
+  - US-304 (implement daily prediction function) is next — will use load_latest_model + build_features → PredictionResult
 ---

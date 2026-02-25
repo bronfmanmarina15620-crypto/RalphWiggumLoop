@@ -71,10 +71,27 @@ def migration_004_feature_snapshots(conn: sqlite3.Connection) -> None:
     )
 
 
+def migration_005_model_registry(conn: sqlite3.Connection) -> None:
+    """Create the model_registry table."""
+    conn.execute(
+        """\
+        CREATE TABLE IF NOT EXISTS model_registry (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticker          TEXT    NOT NULL,
+            version         INTEGER NOT NULL,
+            trained_at      TEXT    NOT NULL,  -- ISO datetime
+            metrics_json    TEXT    NOT NULL,
+            artifact_path   TEXT    NOT NULL
+        )
+        """
+    )
+
+
 # Ordered list of all migrations. Index 0 = migration 1, etc.
 MIGRATIONS: list[tuple[int, Callable[[sqlite3.Connection], None]]] = [
     (1, migration_001_initial),
     (2, migration_002_sentiment),
     (3, migration_003_fundamentals),
     (4, migration_004_feature_snapshots),
+    (5, migration_005_model_registry),
 ]

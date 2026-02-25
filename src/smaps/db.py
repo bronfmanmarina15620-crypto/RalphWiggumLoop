@@ -10,7 +10,7 @@ from typing import NamedTuple
 from smaps.migrations import MIGRATIONS
 from smaps.models import Fundamentals, OHLCVBar, SentimentScore
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 class FeatureSnapshot(NamedTuple):

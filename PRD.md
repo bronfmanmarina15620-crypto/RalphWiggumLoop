@@ -238,11 +238,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want models saved and versioned so that I can track which model made which prediction.
 
 **Acceptance Criteria:**
-- [ ] Model saved to `models/<ticker>_v<N>.joblib`
-- [ ] Migration adds `model_registry` table: id, ticker, version, trained_at, metrics_json, artifact_path
-- [ ] `load_latest_model(ticker)` retrieves the most recent model
-- [ ] Unit test verifies save/load round-trip
-- [ ] Typecheck passes
+- [x] Model saved to `models/<ticker>_v<N>.joblib`
+- [x] Migration adds `model_registry` table: id, ticker, version, trained_at, metrics_json, artifact_path
+- [x] `load_latest_model(ticker)` retrieves the most recent model
+- [x] Unit test verifies save/load round-trip
+- [x] Typecheck passes
 
 ### US-304: Implement daily prediction function
 **Description:** As a developer, I want one function that takes a ticker and date and returns a prediction.
