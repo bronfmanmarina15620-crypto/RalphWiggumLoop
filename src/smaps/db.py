@@ -27,6 +27,8 @@ class FeatureSnapshot(NamedTuple):
 
 def get_connection(db_path: str = ":memory:") -> sqlite3.Connection:
     """Open (or create) a SQLite database and return the connection."""
+    if db_path != ":memory:":
+        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
