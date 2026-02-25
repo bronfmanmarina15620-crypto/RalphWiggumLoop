@@ -84,3 +84,13 @@ class PredictionResult:
             raise ValueError(
                 f"confidence ({self.confidence}) must be between 0.0 and 1.0"
             )
+
+
+@dataclass(frozen=True, slots=True)
+class EvalResult:
+    """Result of evaluating a prediction against the actual outcome."""
+
+    prediction_id: int
+    actual_direction: Direction
+    is_correct: bool
+    evaluated_at: datetime.datetime

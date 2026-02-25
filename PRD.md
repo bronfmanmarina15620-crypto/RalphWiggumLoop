@@ -269,11 +269,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want each prediction scored against actual price movement so that accuracy is measurable.
 
 **Acceptance Criteria:**
-- [ ] `evaluate_prediction(prediction_id) -> EvalResult` compares predicted vs actual direction
-- [ ] Handles weekends/holidays (skips non-trading days)
-- [ ] `EvalResult`: prediction_id, actual_direction, is_correct (bool), evaluated_at
-- [ ] Unit test verifies correct/incorrect classification
-- [ ] Typecheck passes
+- [x] `evaluate_prediction(prediction_id) -> EvalResult` compares predicted vs actual direction
+- [x] Handles weekends/holidays (skips non-trading days)
+- [x] `EvalResult`: prediction_id, actual_direction, is_correct (bool), evaluated_at
+- [x] Unit test verifies correct/incorrect classification
+- [x] Typecheck passes
 
 ### US-402: Compute rolling accuracy metrics
 **Description:** As a developer, I want aggregate accuracy stats so that model health is monitorable.

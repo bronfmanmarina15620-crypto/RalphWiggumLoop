@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-401: Match predictions to realized outcomes
+- US-402: Compute rolling accuracy metrics
 
 ---
 
@@ -582,4 +582,30 @@
   - Migration pattern remains consistent: add function, add to MIGRATIONS list, bump SCHEMA_VERSION
   - Phase 3 prediction model is now fully complete (US-301 through US-305); Phase 4 (evaluator) is next
   - US-401 (match predictions to realized outcomes) is next — will need to compare predicted vs actual direction
+---
+
+## Iteration 26 — US-401: Match predictions to realized outcomes
+- What was done:
+  - Added EvalResult frozen dataclass to src/smaps/models.py with fields: prediction_id (int), actual_direction (Direction), is_correct (bool), evaluated_at (datetime.datetime)
+  - Created src/smaps/evaluator.py with `evaluate_prediction(conn, prediction_id) -> EvalResult`
+  - Compares predicted direction vs actual direction by looking at close prices:
+    - Gets close on prediction_date from ohlcv_daily
+    - Gets close on next trading day (skips weekends/holidays via SQL query: date > pred_date ORDER BY date ASC LIMIT 1)
+    - If next_close >= pred_close → UP, else → DOWN
+  - Weekend/holiday handling: uses actual ohlcv_daily rows rather than calendar math — naturally skips non-trading days
+  - Max lookahead of 10 calendar days to find next trading day
+  - Raises ValueError for: prediction not found, no price data on prediction date, no next-day price data
+  - Created tests/test_evaluator.py with 11 tests in 3 classes:
+    - TestEvaluatePrediction (6 tests): correct UP, incorrect UP, correct DOWN, incorrect DOWN, flat day counts as UP, evaluated_at has timezone
+    - TestWeekendHolidayHandling (2 tests): skips weekend (Fri→Mon), skips holiday gap (multi-day gap)
+    - TestErrorCases (3 tests): nonexistent prediction, no price on prediction date, no next-day price
+  - Verified: make test (166 passed), make typecheck (success)
+- Files affected: src/smaps/models.py, src/smaps/evaluator.py (new), tests/test_evaluator.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - Weekend/holiday handling is cleanest via SQL: `WHERE date > ? ORDER BY date ASC LIMIT 1` naturally finds next available trading day without calendar logic
+  - Flat day (next_close == pred_close) counts as UP by convention (>= comparison)
+  - EvalResult uses datetime.datetime (not str) for evaluated_at — keeps timezone info as native Python type
+  - No migration needed for US-401 — evaluations table comes in US-403
+  - evaluate_prediction takes conn + prediction_id — loads prediction from DB, queries ohlcv_daily for price comparison
+  - US-402 (compute rolling accuracy metrics) is next — will aggregate EvalResult data for accuracy/precision/recall
 ---
