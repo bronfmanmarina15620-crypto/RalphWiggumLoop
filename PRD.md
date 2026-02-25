@@ -456,6 +456,15 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 - [x] Typecheck passes
 - [x] Verify changes work in browser
 
+### US-806: Sort predictions table by confidence descending
+**Description:** As a user, I want the latest predictions table sorted by confidence from highest to lowest so that I can quickly see the strongest signals first.
+
+**Acceptance Criteria:**
+- [x] Dashboard predictions table sorted by confidence descending by default
+- [x] `/predictions/latest` endpoint returns results sorted by confidence descending
+- [x] Typecheck passes
+- [ ] Verify changes work in browser
+
 ### US-805: Fix training data utilization gap
 **Description:** As a developer, I want all tickers to train on all available historical data so that no data is wasted due to ingestion timing.
 

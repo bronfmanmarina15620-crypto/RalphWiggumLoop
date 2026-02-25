@@ -292,7 +292,7 @@ def get_latest_predictions(
     """Return the most recent prediction per ticker.
 
     If *ticker* is given, return only the prediction for that ticker.
-    Results are ordered by prediction_date descending.
+    Results are ordered by confidence descending.
     """
     if ticker:
         cur = conn.execute(
@@ -312,7 +312,7 @@ def get_latest_predictions(
             "  SELECT ticker, MAX(id) AS max_id "
             "  FROM predictions GROUP BY ticker"
             ") latest ON p.id = latest.max_id "
-            "ORDER BY p.prediction_date DESC",
+            "ORDER BY p.confidence DESC",
         )
     rows = cur.fetchall()
     return [
