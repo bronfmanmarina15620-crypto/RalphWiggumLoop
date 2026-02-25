@@ -12,7 +12,7 @@
 (Cross-story dependencies and gotchas)
 
 ## Next Smallest Task
-- US-501: Implement retrain trigger based on accuracy degradation
+- US-502: Implement automated retraining pipeline
 
 ---
 
@@ -660,4 +660,28 @@
   - Migration pattern remains consistent: add function, add to MIGRATIONS list, bump SCHEMA_VERSION
   - Phase 4 evaluator is now fully complete (US-401 through US-403); Phase 5 (self-learning loop) is next
   - US-501 (retrain trigger based on accuracy degradation) is next — will use compute_metrics to check rolling accuracy
+---
+
+## Iteration 29 — US-501: Implement retrain trigger based on accuracy degradation
+- What was done:
+  - Created src/smaps/retrainer.py with `should_retrain(conn, ticker, threshold=0.50, window_days=30, as_of_date=None) -> bool`
+  - Uses compute_metrics() from evaluator.py to get rolling accuracy over the specified window
+  - Returns True when accuracy < threshold (strict less-than; accuracy == threshold does NOT trigger)
+  - Returns False when no evaluated predictions exist (no evidence of degradation)
+  - Emits structured log events at appropriate levels:
+    - WARNING on retrain trigger (includes ticker, accuracy, threshold, evaluated count, window_days)
+    - INFO when accuracy is ok or when no evaluated predictions exist
+  - Added as_of_date parameter for deterministic testing (same pattern as compute_metrics)
+  - Created tests/test_retrainer.py with 10 tests in 2 classes:
+    - TestShouldRetrain (7 tests): no predictions returns False, accuracy below threshold returns True, accuracy above threshold returns False, accuracy equals threshold returns False, custom threshold, window_days filters old predictions, ticker isolation
+    - TestShouldRetrainLogging (3 tests): logs WARNING on trigger, logs INFO when ok, logs INFO when no predictions (uses caplog fixture)
+  - Verified: make test (202 passed), make typecheck (success, 23 source files)
+- Files affected: src/smaps/retrainer.py (new), tests/test_retrainer.py (new), PRD.md, progress.txt
+- Learnings for next cycles:
+  - should_retrain delegates entirely to compute_metrics — no DB queries of its own; keeps logic clean and DRY
+  - Strict less-than comparison (accuracy < threshold) means accuracy exactly at threshold does NOT trigger retrain
+  - caplog.at_level(logging.WARNING, logger="smaps.retrainer") is the clean way to capture and assert structured log events in pytest
+  - retrainer.py module will also host retrain() (US-502), OOS validation gate (US-503), and rollback (US-504)
+  - as_of_date parameter is essential for deterministic testing — avoids dependence on datetime.date.today()
+  - US-502 (implement automated retraining pipeline) is next — will add retrain() function to retrainer.py
 ---

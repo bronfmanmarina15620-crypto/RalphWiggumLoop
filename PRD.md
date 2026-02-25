@@ -302,11 +302,11 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 **Description:** As a developer, I want the system to detect when it's underperforming so that retraining happens automatically.
 
 **Acceptance Criteria:**
-- [ ] `should_retrain(ticker, threshold=0.50, window_days=30) -> bool`
-- [ ] Returns True when rolling accuracy drops below threshold
-- [ ] Emits structured log event on trigger
-- [ ] Unit test with synthetic eval results verifies trigger logic
-- [ ] Typecheck passes
+- [x] `should_retrain(ticker, threshold=0.50, window_days=30) -> bool`
+- [x] Returns True when rolling accuracy drops below threshold
+- [x] Emits structured log event on trigger
+- [x] Unit test with synthetic eval results verifies trigger logic
+- [x] Typecheck passes
 
 ### US-502: Implement automated retraining pipeline
 **Description:** As a developer, I want retraining to happen end-to-end so that no human intervention is needed.
