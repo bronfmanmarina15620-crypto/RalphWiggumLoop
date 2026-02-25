@@ -476,6 +476,51 @@ The system ingests three data sources — historical price data (OHLCV), news/so
 
 ---
 
+## Retrain Log — 2026-02-25
+
+All models retrained on full historical data (October 2024 – February 2026).
+
+### Latest Predictions (sorted by confidence)
+
+**UP:**
+
+| Ticker | כיוון | ביטחון | גרסה | תאריך מ | תאריך עד | ימי מסחר |
+|--------|-------|--------|-------|---------|----------|----------|
+| PLTR | UP | 61.4% | v2 | 2024-10-01 | 2026-02-25 | 241 |
+| MU | UP | 60.1% | v2 | 2024-10-01 | 2026-02-25 | 241 |
+| GEV | UP | 54.4% | v3 | 2024-10-01 | 2026-02-25 | 241 |
+| ETN | UP | 53.0% | v3 | 2024-10-01 | 2026-02-25 | 241 |
+| PWR | UP | 51.6% | v2 | 2024-10-01 | 2026-02-25 | 241 |
+
+**DOWN:**
+
+| Ticker | כיוון | ביטחון | גרסה | תאריך מ | תאריך עד | ימי מסחר |
+|--------|-------|--------|-------|---------|----------|----------|
+| ORCL | DOWN | 60.7% | v2 | 2024-10-01 | 2026-02-25 | 241 |
+| AAPL | DOWN | 60.2% | v2 | 2024-10-04 | 2026-02-25 | 238 |
+| TSM | DOWN | 59.6% | v2 | 2024-10-01 | 2026-02-25 | 241 |
+| CEG | DOWN | 56.7% | v2 | 2024-10-01 | 2026-02-25 | 241 |
+| VRT | DOWN | 53.8% | v3 | 2024-10-01 | 2026-02-25 | 241 |
+| NBIS | DOWN | 51.9% | v2 | 2024-10-21 | 2026-02-25 | 227 |
+
+### Model Accuracy at Training
+
+| Ticker | גרסה | דיוק באימון | train_size | test_size |
+|--------|-------|-------------|------------|-----------|
+| VRT | v3 | 62.5% | 192 | 48 |
+| MU | v2 | 56.3% | 192 | 48 |
+| PWR | v2 | 56.3% | 192 | 48 |
+| NBIS | v2 | 54.4% | 180 | 46 |
+| AAPL | v2 | 52.1% | 189 | 48 |
+| ETN | v3 | 52.1% | 192 | 48 |
+| ORCL | v2 | 50.0% | 192 | 48 |
+| GEV | v3 | 47.9% | 192 | 48 |
+| PLTR | v2 | 45.8% | 192 | 48 |
+| TSM | v2 | 45.8% | 192 | 48 |
+| CEG | v2 | 43.8% | 192 | 48 |
+
+---
+
 ## Non-Goals
 
 - **No live trading**: The system predicts direction only; it does not place orders or manage a portfolio
