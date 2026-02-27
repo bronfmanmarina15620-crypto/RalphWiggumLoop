@@ -8,7 +8,10 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application settings. Override via SMAPS_* env vars."""
 
-    tickers: list[str] = ["PLTR"]
+    tickers: list[str] = [
+        "PLTR", "NVDA", "QQQ", "SPY", "SGML", "UEC",
+        "VRT", "XAR", "AVAV", "FTAI",
+    ]
     db_path: str = "data/smaps.sqlite"
     log_level: str = "INFO"
 
