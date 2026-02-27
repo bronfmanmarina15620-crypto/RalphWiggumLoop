@@ -24,6 +24,7 @@ from smaps.db import (
 from smaps.evaluator import evaluate_prediction
 from smaps.logging import get_logger
 from smaps.model.predictor import predict
+from smaps.model.registry import load_latest_model
 from smaps.retrainer import retrain_with_validation, should_retrain
 
 
@@ -122,6 +123,19 @@ def _run_ticker(
     except Exception:
         result["ingest"] = "error"
         logger.exception("step=ingest ticker=%s status=error", ticker)
+
+    # Step 1b: Auto-train if no model exists yet
+    if load_latest_model(conn, ticker) is None:
+        t0 = time.monotonic()
+        try:
+            retrain_with_validation(conn, ticker, models_dir)
+            logger.info(
+                "step=auto_train ticker=%s status=ok elapsed=%.2fs",
+                ticker,
+                time.monotonic() - t0,
+            )
+        except Exception:
+            logger.exception("step=auto_train ticker=%s status=error", ticker)
 
     # Step 2: Predict (features built internally by predict())
     t0 = time.monotonic()

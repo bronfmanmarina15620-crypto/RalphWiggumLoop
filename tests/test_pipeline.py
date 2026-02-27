@@ -278,6 +278,7 @@ class TestResultStructure:
 class TestRetrainIntegration:
     """Tests for the retrain step within the pipeline."""
 
+    @patch("smaps.pipeline.load_latest_model", return_value="mock_model")
     @patch("smaps.pipeline.retrain_with_validation")
     @patch("smaps.pipeline.should_retrain", return_value=True)
     @patch("smaps.pipeline.predict")
@@ -292,6 +293,7 @@ class TestRetrainIntegration:
         mock_predict,
         mock_retrain_check,
         mock_retrain_exec,
+        mock_load_model,
     ):
         """Retrain is called when should_retrain returns True."""
         from smaps.model.registry import ModelRecord
@@ -310,6 +312,7 @@ class TestRetrainIntegration:
         mock_retrain_exec.assert_called_once()
         assert result["tickers"]["AAPL"]["retrain"] == "retrained"
 
+    @patch("smaps.pipeline.load_latest_model", return_value="mock_model")
     @patch("smaps.pipeline.retrain_with_validation", return_value=None)
     @patch("smaps.pipeline.should_retrain", return_value=True)
     @patch("smaps.pipeline.predict")
@@ -324,6 +327,7 @@ class TestRetrainIntegration:
         mock_predict,
         mock_retrain_check,
         mock_retrain_exec,
+        mock_load_model,
     ):
         """Result shows 'rollback' when retrain_with_validation returns None."""
         mock_sent.return_value = _make_sentiment()
@@ -373,13 +377,14 @@ class TestPipelineLogging:
         assert any("pipeline_start" in m for m in messages)
         assert any("pipeline_complete" in m for m in messages)
 
+    @patch("smaps.pipeline.load_latest_model", return_value="mock_model")
     @patch("smaps.pipeline.should_retrain", return_value=False)
     @patch("smaps.pipeline.predict")
     @patch("smaps.pipeline.fetch_fundamentals")
     @patch("smaps.pipeline.fetch_sentiment")
     @patch("smaps.pipeline.fetch_daily_bars", return_value=[])
     def test_logs_each_step_with_elapsed(
-        self, mock_bars, mock_sent, mock_fund, mock_predict, mock_retrain, caplog
+        self, mock_bars, mock_sent, mock_fund, mock_predict, mock_retrain, mock_load_model, caplog
     ):
         mock_sent.return_value = _make_sentiment()
         mock_fund.return_value = _make_fundamentals()
